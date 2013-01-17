@@ -1,4 +1,6 @@
 
 var config = {
-    username:'arscan'
+    username:'arscan',
+    uid: 'dafsdfsadfasdf'
 }
+module.exports = config;
