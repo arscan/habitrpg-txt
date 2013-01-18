@@ -25,20 +25,23 @@ var data = {
         {name:'Record Summary',done:0}
         ],
     todos: [
-        'Ring Insurance',
-        'book ZQN -> AKL flight',
-        'confirm all flights',
-        'email caddy and mullin about stuff to do during the day',
-        'Review IB',
-        'Review IB Addendum',
-        'Review ITM'],
+        {name:'Ring Insurance'},
+        {name:'book ZQN -> AKL flight'},
+        {name:'confirm all flights'},
+        {name:'email caddy and mullin about stuff to do during the day'},
+        {name:'Review IB'},
+        {name:'Review IB Addendum'},
+        {name:'Review ITM'}],
     rewards: [
         { name: 'Leather Armor', 'price': 30, description: 'Helps with stuff'},
         { name: 'Sword 2', 'price': 25, description: 'Helps with stuff'},
         { name: 'potion', 'price': 25, description: 'Helps with stuff'}
         ]
 
-}
+};
+
+var habitsLocation = {"top": 0, "bottom": 0};
+var dailyLocation = {"top":0, "bottom":0};
 
 //updateHeader(win,'hi here', {pos:'right'});
 
@@ -50,41 +53,81 @@ win.attron(nc.colorPair(1));
 win2.attron(nc.colorPair(2));
 win.attron(nc.colorPair(2));
 */
+//win.scrollok(true);
+//win.setscrreg(1, win.height-3); // Leave one line at the top for the header
+//win.idlok(true);
 
 /* draw the header */
-drawHeader(win,"connected");
+var fnDraw = function(){
+    
+    drawHeader(win,"connected");
 
-/* draw the status box */
-var statusWindow = new nc.Window(7,nc.cols-4);
-statusWindow.move(3,2);
-statusWindow.box();
-statusWindow.cursor(0,2);
-statusWindow.addstr(config.username);
-statusWindow.addstr(' [lvl ' + data.level + ']');
-statusWindow.refresh();
-drawBar(statusWindow,1,2,data.health,data.healthMax,'Health',2);
-drawBar(statusWindow,1,2,data.exp,data.expMax,'Exp',4);
+    /* draw the status box */
+    var statusWindow = new nc.Window(7,nc.cols-4);
+    statusWindow.move(3,2);
+    statusWindow.box();
+    statusWindow.cursor(0,2);
+    statusWindow.addstr(config.username);
+    statusWindow.addstr(' [lvl ' + data.level + ']');
+    statusWindow.refresh();
+    drawBar(statusWindow,1,2,data.health,data.healthMax,'Health',2);
+    drawBar(statusWindow,1,2,data.exp,data.expMax,'Exp',4);
 
-/* draw the habit area */
+    /* draw the habit area */
+    var habitWindow = new nc.Window(4,nc.cols-4);
+    habitWindow.move(11,2);
+    habitWindow.cursor(0,0);
+    habitWindow.hline(habitWindow.width, nc.ACS.HLINE);
+    habitWindow.cursor(0,1);
+    habitWindow.addstr(' Habits ');
+    habitWindow.cursor(2,0);
+    for(var i = data.habits.length-1; i>=0;i--){
+        habitWindow.insertln();
+        habitWindow.resize(habitWindow.height+1, habitWindow.width);
+        habitWindow.cursor(2,0);
+        habitWindow.addstr('[ ] ' + data.habits[i].name.substr(0,habitWindow.width-5));
 
-win.cursor(11,2);
-win.hline(nc.cols-4, nc.ACS.HLINE);
+    }
+    /* draw the Daily section*/
+    var dailyWindow = new nc.Window(4,nc.cols-4);
+    dailyWindow.move(habitWindow.begy+habitWindow.height-1,2);
+    dailyWindow.cursor(0,0);
+    dailyWindow.hline(dailyWindow.width, nc.ACS.HLINE);
+    dailyWindow.cursor(0,1);
+    dailyWindow.addstr(' Daily ');
+    dailyWindow.cursor(2,0);
+    for(var i = data.daily.length-1; i>=0;i--){
+        dailyWindow.insertln();
+        dailyWindow.resize(dailyWindow.height+1, dailyWindow.width);
+        dailyWindow.cursor(2,0);
+        dailyWindow.addstr('[ ] ' + data.daily[i].name.substr(0,dailyWindow.width-5));
+
+    }
+
+    var todoWindow = new nc.Window(4,nc.cols-4);
+    todoWindow.move(dailyWindow.begy+dailyWindow.height-1,2);
+    todoWindow.cursor(0,0);
+    todoWindow.hline(todoWindow.width, nc.ACS.HLINE);
+    todoWindow.cursor(0,1);
+    todoWindow.addstr(' Todos ');
+    todoWindow.cursor(2,0);
+    for(var i = data.todos.length-1; i>=0;i--){
+        todoWindow.insertln();
+        todoWindow.resize(todoWindow.height+1, todoWindow.width);
+        todoWindow.cursor(2,0);
+        todoWindow.addstr('[ ] ' + data.todos[i].name.substr(0,todoWindow.width-5));
+    }
+    win.refresh();
+    win.cursor(0,0);
+};
+
+fnDraw();
+win.on('inputChar', function (c, i) {
+
+    win.cursor(0,0);
 
 
-win.cursor(11,3);
-win.addstr(' Habits ');
-
-win.cursor(13,2)
-for(var i = 0; i<data.habits.length;i++){
-    win.addstr('[ ][-] ' + data.habits[i].name);
-    win.cursor(13+i,2);
-}
-
-
-
-
-
-win.refresh();
+});
 function drawHeader(mywin, state){
     mywin.cursor(0,0);
     mywin.clrtoeol();
@@ -138,3 +181,4 @@ function updateHeader(win, header, style) {
    win.cursor(cury, curx);
    win.refresh();
 }
+process.on('SIGWINCH',fnDraw);
