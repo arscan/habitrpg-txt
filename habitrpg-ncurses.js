@@ -74,20 +74,21 @@ var fnDraw = function(){
     drawBar(statusWindow,1,2,data.exp,data.expMax,'Exp',4);
 
     /* draw the habit area */
-    var habitWindow = new nc.Window(4,nc.cols-4);
+    var habitWindow = new nc.Window(4+data.habits.length,nc.cols-4);
     habitWindow.move(11,2);
     habitWindow.cursor(0,0);
     habitWindow.hline(habitWindow.width, nc.ACS.HLINE);
     habitWindow.cursor(0,1);
     habitWindow.addstr(' Habits ');
-    habitWindow.cursor(2,0);
-    for(var i = data.habits.length-1; i>=0;i--){
-        habitWindow.insertln();
-        habitWindow.resize(habitWindow.height+1, habitWindow.width);
-        habitWindow.cursor(2,0);
+    habitWindow.cursor(1,0);
+    for(var i = 0; i<data.habits.length;i++){
+        habitWindow.cursor(habitWindow.cury+1,0);
+        data.habits[i].cury = habitWindow.cury;
         habitWindow.addstr('[ ] ' + data.habits[i].name.substr(0,habitWindow.width-5));
 
     }
+    habitWindow.chgat(data.habits[3].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
+    habitWindow.cursor(data.habits[3].cury,2);
     /* draw the Daily section*/
     var dailyWindow = new nc.Window(4,nc.cols-4);
     dailyWindow.move(habitWindow.begy+habitWindow.height-1,2);
@@ -119,15 +120,34 @@ var fnDraw = function(){
     }
     win.refresh();
     win.cursor(0,0);
-};
-
-fnDraw();
+}
+/*
 win.on('inputChar', function (c, i) {
-
-    win.cursor(0,0);
+    win.cursor(4,4);
+    process.exit(0);
 
 
 });
+*/
+/*
+ * win.on('inputChar', function (c, i) {
+    //win.cursor(0,0);
+    //win.clrtoeol();
+
+    win.addstr("dfdfadfasdf");
+    //win.refresh();
+    habitWindow.chgat(data.habits[3].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
+    habitWindow.cursor(data.habits[3].cury,2);
+    habitWindow.refresh();
+    win.refresh();
+//    win.addstr('hi dfddfl');
+
+
+
+});
+*/
+fnDraw();
+
 function drawHeader(mywin, state){
     mywin.cursor(0,0);
     mywin.clrtoeol();
@@ -181,4 +201,4 @@ function updateHeader(win, header, style) {
    win.cursor(cury, curx);
    win.refresh();
 }
-process.on('SIGWINCH',fnDraw);
+//process.on('SIGWINCH',fnDraw);
