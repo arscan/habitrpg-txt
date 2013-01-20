@@ -58,7 +58,6 @@ win.attron(nc.colorPair(2));
 //win.idlok(true);
 
 /* draw the header */
-var fnDraw = function(){
     
     drawHeader(win,"connected");
 
@@ -87,8 +86,6 @@ var fnDraw = function(){
         habitWindow.addstr('[ ] ' + data.habits[i].name.substr(0,habitWindow.width-5));
 
     }
-    habitWindow.chgat(data.habits[3].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
-    habitWindow.cursor(data.habits[3].cury,2);
     /* draw the Daily section*/
     var dailyWindow = new nc.Window(4,nc.cols-4);
     dailyWindow.move(habitWindow.begy+habitWindow.height-1,2);
@@ -118,17 +115,43 @@ var fnDraw = function(){
         todoWindow.cursor(2,0);
         todoWindow.addstr('[ ] ' + data.todos[i].name.substr(0,todoWindow.width-5));
     }
+win.cursor(0,0);
     win.refresh();
-    win.cursor(0,0);
-}
-/*
-win.on('inputChar', function (c, i) {
-    win.cursor(4,4);
-    process.exit(0);
+    //win.cursor(0,0);
 
+    currentIndex = 0;
+        habitWindow.chgat(data.habits[0].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
+        habitWindow.cursor(data.habits[0].cury,2);
+        habitWindow.refresh();
+todoWindow.on('inputChar', function (c, i) {
+    if(i === 106){
+
+
+        habitWindow.chgat(data.habits[currentIndex].cury, 0, habitWindow.width, nc.attrs.NORMAL, nc.colorPair(0));
+        currentIndex++;
+        
+        habitWindow.chgat(data.habits[currentIndex].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
+        habitWindow.cursor(data.habits[currentIndex].cury,2);
+        habitWindow.refresh();
+
+    }
+    if(i === 107){
+
+
+        habitWindow.chgat(data.habits[currentIndex].cury, 0, habitWindow.width, nc.attrs.NORMAL, nc.colorPair(0));
+        currentIndex--;
+        
+        habitWindow.chgat(data.habits[currentIndex].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
+        habitWindow.cursor(data.habits[currentIndex].cury,2);
+        habitWindow.refresh();
+
+    }
 
 });
-*/
+win.on('inputChar', function (c, i) {
+    win.addstr('hi there');
+    win.refresh();
+});
 /*
  * win.on('inputChar', function (c, i) {
     //win.cursor(0,0);
@@ -146,7 +169,6 @@ win.on('inputChar', function (c, i) {
 
 });
 */
-fnDraw();
 
 function drawHeader(mywin, state){
     mywin.cursor(0,0);
