@@ -1,0 +1,12 @@
+{ "name": "habitrpg-ncurses",
+  "version": "0.1.0",
+  "author": "Rob Scanlon <robscanlon@gmail.com>",
+  "description": "A command line interface for habitrpg.com using ncurses",
+  "dependencies": {"ncurses":"*"},
+  "scripts": { "preinstall": "node-gyp rebuild" },
+  "main": "./habitrpg-ncurses",
+  "engines": { "node": ">0.6.0" },
+  "keywords": [ "habitrpg", "ncurses", "habitrpg-ncurses"],
+  "licenses": [ { "type": "MIT", "url": "http://github.com/arscan/habitrpg-ncurses/raw/master/LICENSE" } ],
+  "repository": { "type": "git", "url": "http://github.com/arscan/habitrpg-ncurses/habitrpg-ncurses.git" }
+}
