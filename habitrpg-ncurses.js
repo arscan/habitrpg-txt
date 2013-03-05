@@ -20,6 +20,7 @@ var data = {
         ],
     todos: [
         {name:'Ring Insurance', done:0},
+    ],
     rewards: [   /* NOT IMPLEMENTED YET */
         { name: 'Leather Armor', 'price': 30, description: 'Helps with stuff'},
         ],
