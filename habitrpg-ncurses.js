@@ -1,7 +1,10 @@
 var nc = require('ncurses'),
+        http = require('http'),
           win = new nc.Window(),
-          config = require('./config.js');
+          config = require('./config.js'),
+            request = require('superagent');
 var data = {
+    username:'arscanable',
     level:1,
     health:45,
     healthMax:50,
@@ -11,33 +14,66 @@ var data = {
     silver: 10,
     habits: [
         {name:'1 Hour Productive Work',up:1,down:0},
-        {name:'Eat Healthy Meal',up:1,down:1},
-        {name:'Junk food / soda',up:0,down:1},
-        {name:'Use Notebook',up:1,down:1},
-        {name:'Visit Reddit / HN',up:0,down:1}
         ],
     daily: [
         {name:'Go to Gym',done:0},
-        {name:'Clean Desk, no VM, etc',done:1},
-        {name:'In Work Early',done:0},
-        {name:'Weekly Summary',done:0},
         ],
     todos: [
         {name:'Ring Insurance', done:0},
-        {name:'book ZQN -> AKL flight', done:0},
-        {name:'confirm all flights', done:0},
-        {name:'Review IB', done:0},
-        {name:'Review ITM', done:0},
-        {name:'Call Marriot', done:0},
-        {name:'Refactor habitrpg-ncurses', done:0}],
     rewards: [   /* NOT IMPLEMENTED YET */
         { name: 'Leather Armor', 'price': 30, description: 'Helps with stuff'},
-        { name: 'Sword 2', 'price': 25, description: 'Helps with stuff'},
-        { name: 'potion', 'price': 25, description: 'Helps with stuff'}
-        ]
+        ],
 
 };
+var refresh =  function(){
+        request.get(config.apiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+        data.username = res.body.auth.local.username;
+        data.level = res.body.stats.lvl;
+        data.health = Math.ceil(res.body.stats.hp);
+        data.healthMax=50;
+        data.exp = Math.floor(res.body.stats.exp);
+        data.expMax = 200;
+        data.habits = [];
+        data.daily = [];
+        data.todos = [];
+        for(var i = 0; i<res.body.habitIds.length;i++){
+            data.habits[i] = {};
+            data.habits[i].id = res.body.habitIds[i]
+            data.habits[i].name = res.body.tasks[res.body.habitIds[i]].text;
+            data.habits[i].up = res.body.tasks[res.body.habitIds[i]].up;
+            data.habits[i].down = res.body.tasks[res.body.habitIds[i]].down;
+        }
+        for(var i = 0; i<res.body.dailyIds.length;i++){
+            data.daily[i] = {};
+            data.daily[i].id = res.body.dailyIds[i]
+            data.daily[i].name = res.body.tasks[res.body.dailyIds[i]].text;
+            data.daily[i].up = res.body.tasks[res.body.dailyIds[i]].up;
+            data.daily[i].down = res.body.tasks[res.body.dailyIds[i]].down;
+            data.daily[i].done = res.body.tasks[res.body.dailyIds[i]].completed;
+        }
+        for(var i = 0; i<res.body.todoIds.length;i++){
+            data.todos[i] = {};
+            data.todos[i].id = res.body.dailyIds[i]
+            data.todos[i].name = res.body.tasks[res.body.todoIds[i]].text;
+            data.todos[i].up = res.body.tasks[res.body.todoIds[i]].up;
+            data.todos[i].down = res.body.tasks[res.body.todoIds[i]].down;
+            data.todos[i].done = res.body.tasks[res.body.todoIds[i]].completed;
+        }
+        drawFn();
+        });
 
+
+    }
+
+var addtask = function(task){
+
+//        request.get(config.apiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+
+
+}
+
+refresh();
+setInterval(refresh,10000);
 
 var items = [];
 
@@ -59,7 +95,7 @@ var drawFn = function(){
     statusWindow.move(1,2);
     statusWindow.box();
     statusWindow.cursor(0,2);
-    statusWindow.addstr(config.username);
+    statusWindow.addstr(data.username);
     statusWindow.addstr(' [lvl ' + data.level + ']');
     statusWindow.refresh();
     drawBar(statusWindow,1,2,data.health,data.healthMax,'Health',2);
@@ -118,7 +154,6 @@ var drawFn = function(){
         todosDone += data.todos[i].done;
     }
 
-
     win.cursor(win.cury-data.todos.length-1,0);
     drawHeader(win,"Todos [" + todosDone + " completed today]");
     win.cursor(win.cury+data.todos.length+4,0);
@@ -127,7 +162,7 @@ var drawFn = function(){
     win.refresh();
 }
 
-drawFn();
+//drawFn();
 
 function drawHeader(mywin, title){
     mywin.hline(win.width-3, nc.ACS.HLINE);
@@ -151,7 +186,6 @@ inputWindow.on('inputChar', function (c, i) {
         inputWindow.clear();
 
         if(i === 106){
-
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex++;
@@ -279,35 +313,8 @@ inputWindow.on('inputChar', function (c, i) {
 
     }
     inputWindow.refresh();
-        
-    //inputWindow.addstr('' +i);
-
-
 
 });
-
-
-win.on('inputChar', function (c, i) {
-    win.addstr('hi there');
-    win.refresh();
-});
-/*
- * win.on('inputChar', function (c, i) {
-    //win.cursor(0,0);
-    //win.clrtoeol();
-
-    win.addstr("dfdfadfasdf");
-    //win.refresh();
-    habitWindow.chgat(data.habits[3].cury, 0, habitWindow.width, nc.attrs.STANDOUT, nc.colorPair(5));
-    habitWindow.cursor(data.habits[3].cury,2);
-    habitWindow.refresh();
-    win.refresh();
-//    win.addstr('hi dfddfl');
-
-
-
-});
-*/
 
 function drawFooter(mywin, state){
     mywin.cursor(mywin.height-2,0);
@@ -316,7 +323,6 @@ function drawFooter(mywin, state){
     mywin.addstr(mywin.height-2, mywin.width-(Math.min(state.length, mywin.width)), state, mywin.width);
     mywin.chgat(mywin.height-2, 0, mywin.width, nc.attrs.STANDOUT, nc.colorPair(5));
 }
-
 
 function drawBar(mywin, onColorPair, offColorPair, val, valMax, label, rowStart){
     var totalwidth = mywin.width - 6,
