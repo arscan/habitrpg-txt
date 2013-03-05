@@ -43,6 +43,9 @@ var refresh =  function(){
             data.habits[i].name = res.body.tasks[res.body.habitIds[i]].text;
             data.habits[i].up = res.body.tasks[res.body.habitIds[i]].up;
             data.habits[i].down = res.body.tasks[res.body.habitIds[i]].down;
+            // TODO: parse the array and figure out how many points in the last 24 hours
+            //console.log(res.body.tasks[res.body.habitIds[i]].history);
+            //process.exit(0);
         }
         for(var i = 0; i<res.body.dailyIds.length;i++){
             data.daily[i] = {};
@@ -54,7 +57,7 @@ var refresh =  function(){
         }
         for(var i = 0; i<res.body.todoIds.length;i++){
             data.todos[i] = {};
-            data.todos[i].id = res.body.dailyIds[i]
+            data.todos[i].id = res.body.todoIds[i]
             data.todos[i].name = res.body.tasks[res.body.todoIds[i]].text;
             data.todos[i].up = res.body.tasks[res.body.todoIds[i]].up;
             data.todos[i].down = res.body.tasks[res.body.todoIds[i]].down;
@@ -66,11 +69,35 @@ var refresh =  function(){
 
     }
 
-var addtask = function(task){
+var setTaskStatus = function(taskid, taskstatus){
+    //console.log(taskid);
+    //process.exit(0);
 
-//        request.get(config.apiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+        request.put(config.apiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
+            refresh();
+            //process.exit(0);
 
 
+});
+}
+
+var doHabit = function(taskid, habitup){
+    //console.log(taskid);
+    //process.exit(0);
+
+//        request.put(config.apiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
+ //           refresh();
+            //process.exit(0);
+
+
+//});
+}
+
+var createTask = function(tasktype, text){
+        request.post(config.apiurl + "/user/task").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({type:tasktype, text:text}).end(function(res){
+            refresh();
+
+});
 }
 
 refresh();
@@ -87,6 +114,7 @@ var unsaved = false;
 
 var drawFn = function(){
     items = [];
+    win.clear();
 
     /* draw the header */
         
@@ -214,7 +242,8 @@ inputWindow.on('inputChar', function (c, i) {
             unsaved = true;
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 items[currentIndex].done = 1;
-                process.nextTick(drawFn);
+                setTaskStatus(items[currentIndex].id,true);
+                //process.nextTick(drawFn);
 
             } else if(items[currentIndex].type == 'habits'){
                 items[currentIndex].up += 1;
@@ -225,7 +254,8 @@ inputWindow.on('inputChar', function (c, i) {
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 unsaved = true;
                 items[currentIndex].done = (items[currentIndex].done * -1) + 1;
-                process.nextTick(drawFn);
+                setTaskStatus(items[currentIndex].id,items[currentIndex].done);
+                //process.nextTick(drawFn);
             }
 
         } else if(i === 100){
@@ -280,15 +310,45 @@ inputWindow.on('inputChar', function (c, i) {
                     var cmd = inputWindow.inbuffer.substring(1).split(' ', 1).join('').trim(),
                         args = inputWindow.inbuffer.substring(inputWindow.inbuffer.indexOf(cmd)+cmd.length+1).trim();
                     switch (cmd.toLowerCase()) {
-                        case 'a':
+                        case 't':
                             if (args.length) {
-                                data.todos.push({'name':args, done:0});
+                                //data.todos.push({'name':args, done:0});
                                 inputWindow.clear();
                                 inputWindow.inbuffer = '';
-                                process.nextTick(drawFn);
+                                //process.nextTick(drawFn);
                                 nc.showCursor = false;
                                 mode = 'normal';
                                 unsaved = true;
+                                createTask("todo",args);
+
+                            
+                            }
+                            break;
+                        case 'h':
+                            if (args.length) {
+                                //data.todos.push({'name':args, done:0});
+                                inputWindow.clear();
+                                inputWindow.inbuffer = '';
+                                //process.nextTick(drawFn);
+                                nc.showCursor = false;
+                                mode = 'normal';
+                                unsaved = true;
+                                createTask("habit",args);
+
+                            
+                            }
+                            break;
+                        case 'd':
+                            if (args.length) {
+                                //data.todos.push({'name':args, done:0});
+                                inputWindow.clear();
+                                inputWindow.inbuffer = '';
+                                //process.nextTick(drawFn);
+                                nc.showCursor = false;
+                                mode = 'normal';
+                                unsaved = true;
+                                createTask("daily",args);
+
                             
                             }
                             break;
