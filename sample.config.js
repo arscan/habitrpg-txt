@@ -1,6 +1,6 @@
 
 var config = {
-    apiurl:'https://habitrpg.com/api/v1',
+    apiurl:'https://habitrpg.com/',
     apiuser:'asdfasdfafsd', // from the status box
     apitoken: 'dafsdfsadfasdf'
 }

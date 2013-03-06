@@ -1,10 +1,14 @@
 var nc = require('ncurses'),
-        http = require('http'),
-          win = new nc.Window(),
-          config = require('./config.js'),
-            request = require('superagent');
+    http = require('http'),
+    win = new nc.Window(),
+    config = require('./config.js'),
+    request = require('superagent'),
+    fullapiurl = config.apiurl + 'api/v1',
+    habitapiurl = config.apiurl + 'v1';
+
+
 var data = {
-    username:'arscanable',
+    username:'something',
     level:1,
     health:45,
     healthMax:50,
@@ -27,7 +31,7 @@ var data = {
 
 };
 var refresh =  function(){
-        request.get(config.apiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+        request.get(fullapiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
         data.username = res.body.auth.local.username;
         data.level = res.body.stats.lvl;
         data.health = Math.ceil(res.body.stats.hp);
@@ -41,11 +45,29 @@ var refresh =  function(){
             data.habits[i] = {};
             data.habits[i].id = res.body.habitIds[i]
             data.habits[i].name = res.body.tasks[res.body.habitIds[i]].text;
-            data.habits[i].up = res.body.tasks[res.body.habitIds[i]].up;
-            data.habits[i].down = res.body.tasks[res.body.habitIds[i]].down;
-            // TODO: parse the array and figure out how many points in the last 24 hours
-            //console.log(res.body.tasks[res.body.habitIds[i]].history);
-            //process.exit(0);
+            data.habits[i].up = 0;
+            data.habits[i].down = 0;
+            data.habits[i].value = res.body.tasks[res.body.habitIds[i]].value;
+            var habitsback = 0;
+            var yesterdayDate = new Date().getTime() - 1000*60*60*24;
+            var prevVal = data.habits[i].value;
+            if(res.body.tasks[res.body.habitIds[i]].history){
+                var habitsback = res.body.tasks[res.body.habitIds[i]].history.length-1;
+                //console.log(res.body.tasks[res.body.habitIds[i]].history[habitsback]);
+                //process.exit(0); 
+
+                while(res.body.tasks[res.body.habitIds[i]].history && habitsback >= 0 && res.body.tasks[res.body.habitIds[i]].history[habitsback] && res.body.tasks[res.body.habitIds[i]].history[habitsback].date > yesterdayDate){
+                    
+                    if(prevVal > res.body.tasks[res.body.habitIds[i]].history[habitsback].value){
+                        data.habits[i].up++; 
+                    } else {
+                        data.habits[i].down++; 
+                    }
+                    prevVal = res.body.tasks[res.body.habitIds[i]].history[habitsback].value;
+                    habitsback--;
+                }
+            }
+            
         }
         for(var i = 0; i<res.body.dailyIds.length;i++){
             data.daily[i] = {};
@@ -55,13 +77,19 @@ var refresh =  function(){
             data.daily[i].down = res.body.tasks[res.body.dailyIds[i]].down;
             data.daily[i].done = res.body.tasks[res.body.dailyIds[i]].completed;
         }
+        var validtodos = 0;
         for(var i = 0; i<res.body.todoIds.length;i++){
-            data.todos[i] = {};
-            data.todos[i].id = res.body.todoIds[i]
-            data.todos[i].name = res.body.tasks[res.body.todoIds[i]].text;
-            data.todos[i].up = res.body.tasks[res.body.todoIds[i]].up;
-            data.todos[i].down = res.body.tasks[res.body.todoIds[i]].down;
-            data.todos[i].done = res.body.tasks[res.body.todoIds[i]].completed;
+
+            if(!res.body.tasks[res.body.todoIds[i]].completed){
+                data.todos[validtodos] = {};
+                data.todos[validtodos].id = res.body.todoIds[i]
+                data.todos[validtodos].name = res.body.tasks[res.body.todoIds[i]].text;
+                data.todos[validtodos].up = res.body.tasks[res.body.todoIds[i]].up;
+                data.todos[validtodos].down = res.body.tasks[res.body.todoIds[i]].down;
+                data.todos[validtodos].done = res.body.tasks[res.body.todoIds[i]].completed;
+                validtodos++;   
+            }
+            
         }
         drawFn();
         });
@@ -70,31 +98,39 @@ var refresh =  function(){
     }
 
 var setTaskStatus = function(taskid, taskstatus){
-    //console.log(taskid);
-    //process.exit(0);
 
-        request.put(config.apiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
+        request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
             refresh();
-            //process.exit(0);
 
+});
+}
+var renameTask = function(taskid, newtext){
+
+        request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({text:newtext}).end(function(res){
+            refresh();
 
 });
 }
 
-var doHabit = function(taskid, habitup){
-    //console.log(taskid);
-    //process.exit(0);
+var deleteTask = function(taskid){
+    // NOT YET IMPLEMENTED IN THE API
 
-//        request.put(config.apiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
- //           refresh();
-            //process.exit(0);
+        //request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({text:'bye'}).end(function(res){
+            //refresh();
 
 
 //});
 }
 
+var doHabit = function(habitname, direction){
+        request.post(habitapiurl + "/users/" + config.apiuser + "/tasks/" + habitname + '/' + direction).set('Accept', 'application/json').send({apiToken:config.apitoken}).end(function(res){
+    refresh();
+
+});
+}
+
 var createTask = function(tasktype, text){
-        request.post(config.apiurl + "/user/task").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({type:tasktype, text:text}).end(function(res){
+        request.post(fullapiurl + "/user/task").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({type:tasktype, text:text}).end(function(res){
             refresh();
 
 });
@@ -191,8 +227,6 @@ var drawFn = function(){
     win.refresh();
 }
 
-//drawFn();
-
 function drawHeader(mywin, title){
     mywin.hline(win.width-3, nc.ACS.HLINE);
     mywin.cursor(mywin.cury,0);
@@ -213,59 +247,55 @@ inputWindow.on('inputChar', function (c, i) {
 
     if(mode == 'normal'){
         inputWindow.clear();
+        //console.log(i);
+        //process.exit(0);
 
-        if(i === 106){
+        if(i === 106 || i === 259){ // J, up arrow: move up
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex++;
             if(currentIndex > items.length -1){
                 currentIndex = 0;
             }
-            
+
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
-        } else if(i === 107){
+        } else if(i === 107 || i === 258){ // K, down arrow : move down
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex--;
             if(currentIndex < 0){
                 currentIndex = items.length-1;
             }
-            
+
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
-        } else if(i === 105){
-            unsaved = true;
-            if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
-                items[currentIndex].done = 1;
-                setTaskStatus(items[currentIndex].id,true);
-                //process.nextTick(drawFn);
-
-            } else if(items[currentIndex].type == 'habits'){
-                items[currentIndex].up += 1;
-                process.nextTick(drawFn);
-            }
-
-        } else if(i === 120 || i == 32){
+        } else if(i === 120 || i === 32 || i === 10){ // X and Space and Enter
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 unsaved = true;
                 items[currentIndex].done = (items[currentIndex].done * -1) + 1;
                 setTaskStatus(items[currentIndex].id,items[currentIndex].done);
-                //process.nextTick(drawFn);
+            } else if(items[currentIndex].type == 'habits'){
+                doHabit(items[currentIndex].id,'up');
             }
 
-        } else if(i === 100){
+            if(items[currentIndex].type == 'todos'){
+                currentIndex--;
+
+            }
+
+        } else if(i === 100 || i === 45){ // d, minus to decrement whatever you are on
             unsaved = true;
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
-                items[currentIndex].done = 0;
-                process.nextTick(drawFn);
+                setTaskStatus(items[currentIndex].id,items[currentIndex].done);
+
             } else if(items[currentIndex].type == 'habits'){
-                items[currentIndex].down += 1;
-                process.nextTick(drawFn);
+                //items[currentIndex].down += 1;
+                doHabit(items[currentIndex].id,'down');
             }
         }  else if(i === 58){
             mode = 'command';
@@ -312,45 +342,52 @@ inputWindow.on('inputChar', function (c, i) {
                     switch (cmd.toLowerCase()) {
                         case 't':
                             if (args.length) {
-                                //data.todos.push({'name':args, done:0});
                                 inputWindow.clear();
                                 inputWindow.inbuffer = '';
-                                //process.nextTick(drawFn);
                                 nc.showCursor = false;
                                 mode = 'normal';
                                 unsaved = true;
                                 createTask("todo",args);
-
-                            
                             }
                             break;
                         case 'h':
                             if (args.length) {
-                                //data.todos.push({'name':args, done:0});
                                 inputWindow.clear();
                                 inputWindow.inbuffer = '';
-                                //process.nextTick(drawFn);
                                 nc.showCursor = false;
                                 mode = 'normal';
                                 unsaved = true;
                                 createTask("habit",args);
-
-                            
                             }
                             break;
                         case 'd':
                             if (args.length) {
-                                //data.todos.push({'name':args, done:0});
                                 inputWindow.clear();
                                 inputWindow.inbuffer = '';
-                                //process.nextTick(drawFn);
                                 nc.showCursor = false;
                                 mode = 'normal';
                                 unsaved = true;
                                 createTask("daily",args);
-
-                            
                             }
+                            break;
+                        case 'r':
+                            if (args.length) {
+                                inputWindow.clear();
+                                inputWindow.inbuffer = '';
+                                nc.showCursor = false;
+                                mode = 'normal';
+                                unsaved = true;
+                                renameTask(items[currentIndex].id,args);
+                            }
+                            break;
+
+                        case 'delete':
+                            deleteTask(items[currentIndex].id);
+                            inputWindow.clear();
+                            inputWindow.inbuffer = '';
+                            nc.showCursor = false;
+                            mode = 'normal';
+                            unsaved = true;
                             break;
 
                         case 'q':
@@ -362,14 +399,14 @@ inputWindow.on('inputChar', function (c, i) {
                             inputWindow.addstr('Unknown command: ' + cmd);
                             mode = 'normal';
                             nc.showCursor = false;
-                            
+
                     }
                 }
             }
 
         } else if (i >= 32 && i <= 126 && inputWindow.curx < inputWindow.width-4) {
-           inputWindow.echochar(i);
-           inputWindow.inbuffer += c;
+            inputWindow.echochar(i);
+            inputWindow.inbuffer += c;
         }
 
     }
@@ -391,7 +428,7 @@ function drawBar(mywin, onColorPair, offColorPair, val, valMax, label, rowStart)
         offWidth = totalwidth - onWidth,
         poststring = '' + val + '/' + valMax,
         paddedstring = label + Array(totalwidth - label.length + 1 - poststring.length).join(' ') + poststring;
-    
+
     mywin.cursor(rowStart,3);
     mywin.attron(nc.colorPair(1));
     for (var i = 0; i < paddedstring.length; i++){

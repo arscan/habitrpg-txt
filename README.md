@@ -1,7 +1,7 @@
 habitrpg-ncurses
 ================
 
-node + ncurses interface for habitRPG.  This is not yet functional because I'm awaiting the habitrpg API to be released.
+node + ncurses interface for habitRPG.
 
 This is set up to meet my general task workflow and my preferences.  Todo lists are simple enought that I feel like investing time into making something that works exactly how I want it to work is worthwhile.  Plus I felt like learning ncurses. At this point, attempt to use at your own risk.
 
