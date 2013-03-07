@@ -32,7 +32,7 @@ var data = {
 };
 var refresh =  function(){
         request.get(fullapiurl + "/user").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
-        data.username = res.body.auth.local.username;
+        data.username = res.body.auth.local ? res.body.auth.local.username : res.body.profile.name;
         data.level = res.body.stats.lvl;
         data.health = Math.ceil(res.body.stats.hp);
         data.healthMax=50;
