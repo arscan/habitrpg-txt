@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "author": "Rob Scanlon <robscanlon@gmail.com>",
   "description": "A command line interface for habitrpg.com using ncurses",
-  "dependencies": {"ncurses":"*",
+  "dependencies": {"ncurses":"git://github.com/mscdex/node-ncurses.git#master",
     "superagent": "*"
   },
   "main": "./habitrpg-ncurses",
