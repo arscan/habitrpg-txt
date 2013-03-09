@@ -99,6 +99,7 @@ var refresh =  function(){
 var setTaskStatus = function(taskid, taskstatus){
 
         request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({completed:taskstatus}).end(function(res){
+    unsaved = false;
             refresh();
 
 });
@@ -106,6 +107,7 @@ var setTaskStatus = function(taskid, taskstatus){
 var renameTask = function(taskid, newtext){
 
         request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({text:newtext}).end(function(res){
+    unsaved = false;
             refresh();
 
 });
@@ -116,6 +118,7 @@ var deleteTask = function(taskid){
         request.del(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
             currentIndex--;
             currentIndex = currentIndex < 0? 0: currentIndex;
+        unsaved = false;
             refresh();
 
 });
@@ -123,13 +126,25 @@ var deleteTask = function(taskid){
 
 var doHabit = function(taskid, direction){
         request.post(fullapiurl + "/user/tasks/" + taskid + "/" + direction).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+    unsaved = false;
     refresh();
 
 });
 }
 
 var createTask = function(tasktype, text){
+    if(tasktype == "daily"){
+
+        data[tasktype].push({name: text, up:0,down:0,done:0}); 
+
+    } else {
+
+        data[tasktype + "s"].push({name: text, up:0,down:0,done:0}); 
+    }
+        unsaved=true;
+        drawFn();
         request.post(fullapiurl + "/user/task").set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({type:tasktype, text:text}).end(function(res){
+    unsaved = false;
             refresh();
 
 });
@@ -276,14 +291,17 @@ inputWindow.on('inputChar', function (c, i) {
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 unsaved = true;
                 items[currentIndex].done = (items[currentIndex].done * -1) + 1;
+                drawFn();
                 setTaskStatus(items[currentIndex].id,items[currentIndex].done);
             } else if(items[currentIndex].type == 'habits'){
+                unsaved = true;
+                items[currentIndex].up++;
+                drawFn();
                 doHabit(items[currentIndex].id,'up');
             }
 
             if(items[currentIndex].type == 'todos'){
                 currentIndex--;
-
             }
 
         } else if(i === 100 || i === 45){ // d, minus to decrement whatever you are on
@@ -292,7 +310,8 @@ inputWindow.on('inputChar', function (c, i) {
                 setTaskStatus(items[currentIndex].id,items[currentIndex].done);
 
             } else if(items[currentIndex].type == 'habits'){
-                //items[currentIndex].down += 1;
+                items[currentIndex].down += 1;
+                drawFn();
                 doHabit(items[currentIndex].id,'down');
             }
         }  else if(i === 58){
