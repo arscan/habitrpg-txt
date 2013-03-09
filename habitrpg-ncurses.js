@@ -3,8 +3,7 @@ var nc = require('ncurses'),
     win = new nc.Window(),
     config = require('./config.js'),
     request = require('superagent'),
-    fullapiurl = config.apiurl + 'api/v1',
-    habitapiurl = config.apiurl + 'v1';
+    fullapiurl = config.apiurl + 'api/v1';
 
 
 var data = {
@@ -115,14 +114,15 @@ var renameTask = function(taskid, newtext){
 var deleteTask = function(taskid){
 
         request.del(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+            currentIndex--;
+            currentIndex = currentIndex < 0? 0: currentIndex;
             refresh();
-
 
 });
 }
 
-var doHabit = function(habitname, direction){
-        request.post(habitapiurl + "/users/" + config.apiuser + "/tasks/" + habitname + '/' + direction).set('Accept', 'application/json').send({apiToken:config.apitoken}).end(function(res){
+var doHabit = function(taskid, direction){
+        request.post(fullapiurl + "/user/tasks/" + taskid + "/" + direction).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
     refresh();
 
 });
@@ -241,7 +241,6 @@ var mode = 'normal';
 nc.showCursor = false;
 inputWindow.move(win.height-1,0);
 inputWindow.refresh();
-
 inputWindow.on('inputChar', function (c, i) {
 
     if(mode == 'normal'){
