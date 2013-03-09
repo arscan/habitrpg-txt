@@ -113,13 +113,12 @@ var renameTask = function(taskid, newtext){
 }
 
 var deleteTask = function(taskid){
-    // NOT YET IMPLEMENTED IN THE API
 
-        //request.put(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).send({text:'bye'}).end(function(res){
-            //refresh();
+        request.del(fullapiurl + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', config.apiuser).set('X-API-Key', config.apitoken).end(function(res){
+            refresh();
 
 
-//});
+});
 }
 
 var doHabit = function(habitname, direction){
