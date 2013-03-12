@@ -272,7 +272,9 @@ var drawFn = function(){
     drawHeader(win,"Todos [" + todosDone + " completed today]");
     win.cursor(win.cury+data.todos.length+4,0);
 
-    win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+    if(items.length > 0)
+        win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+
     win.refresh();
 }
 
@@ -303,7 +305,7 @@ inputWindow.on('inputChar', function (c, i) {
         //console.log(i);
         //process.exit(0);
 
-        if(i === 106 || i === 259){ // J, up arrow: move up
+        if((i === 106 || i === 259) && items.length){ // J, up arrow: move up
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex++;
@@ -315,7 +317,7 @@ inputWindow.on('inputChar', function (c, i) {
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
-        } else if(i === 107 || i === 258){ // K, down arrow : move down
+        } else if((i === 107 || i === 258) && items.length){ // K, down arrow : move down
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex--;
@@ -327,7 +329,7 @@ inputWindow.on('inputChar', function (c, i) {
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
-        } else if(i === 120 || i === 32 || i === 10){ // X and Space and Enter
+        } else if((i === 120 || i === 32 || i === 10) && items.length){ // X and Space and Enter
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 unsaved = true;
                 items[currentIndex].done = (items[currentIndex].done * -1) + 1;
@@ -344,7 +346,7 @@ inputWindow.on('inputChar', function (c, i) {
                 currentIndex--;
             }
 
-        } else if(i === 100 || i === 45){ // d, minus to decrement whatever you are on
+        } else if((i === 100 || i === 45) && items.length){ // d, minus to decrement whatever you are on
             unsaved = true;
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 setTaskStatus(items[currentIndex].id,items[currentIndex].done);
@@ -363,6 +365,7 @@ inputWindow.on('inputChar', function (c, i) {
 
         }
     }
+
 
     if(mode == 'command'){
         if(i === 9){
