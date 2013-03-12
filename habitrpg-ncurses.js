@@ -170,6 +170,33 @@ var statusWindow = new nc.Window(7,nc.cols-4);
 var currentIndex = 0;
 var unsaved = false;
 
+var helpWindow = new nc.Window(15, nc.cols-8);
+helpWindow.move(4,4);
+helpWindow.box();
+helpWindow.cursor(1,2);
+helpWindow.addstr('KEY  DESCRIPTION');
+helpWindow.cursor(2,2);
+helpWindow.hline(helpWindow.width-4, nc.ACS.HLINE);
+helpWindow.cursor(3,2);
+helpWindow.addstr('  j  down a line');
+helpWindow.cursor(4,2);
+helpWindow.addstr('  k  up a line');
+helpWindow.cursor(5,2);
+helpWindow.addstr('spc  check off something');
+helpWindow.cursor(6,2);
+helpWindow.addstr('  -  down a habit');
+helpWindow.cursor(8,2);
+helpWindow.addstr(' :q quits');
+helpWindow.cursor(9,2);
+helpWindow.addstr(' :h <txt> add a habit');
+helpWindow.cursor(10,2);
+helpWindow.addstr(' :d <txt> add a daily');
+helpWindow.cursor(11,2);
+helpWindow.addstr(' :t <txt> add a todo');
+helpWindow.cursor(12,2);
+helpWindow.addstr(' :delete');
+helpWindow.hide();
+
 var drawFn = function(){
     items = [];
     win.clear();
@@ -264,8 +291,13 @@ var mode = 'normal';
 nc.showCursor = false;
 inputWindow.move(win.height-1,0);
 inputWindow.refresh();
+helpWindow.on('inputChar', function (c, i) {
+    helpWindow.hide();
+    statusWindow.refresh();
+    
+});
 inputWindow.on('inputChar', function (c, i) {
-
+    //helpWindow.hide();
     if(mode == 'normal'){
         inputWindow.clear();
         //console.log(i);
@@ -322,6 +354,8 @@ inputWindow.on('inputChar', function (c, i) {
                 drawFn();
                 doHabit(items[currentIndex].id,'down');
             }
+        }  else if(i === 63){
+            helpWindow.show();
         }  else if(i === 58){
             mode = 'command';
             inputWindow.inbuffer = '';
@@ -442,7 +476,7 @@ inputWindow.on('inputChar', function (c, i) {
 function drawFooter(mywin, state){
     mywin.cursor(mywin.height-2,0);
     mywin.clrtoeol();
-    win.addstr("HabitRPG");
+    win.addstr("HabitRPG (? for help)");
     mywin.addstr(mywin.height-2, mywin.width-(Math.min(state.length, mywin.width)), state, mywin.width);
     mywin.chgat(mywin.height-2, 0, mywin.width, nc.attrs.STANDOUT, nc.colorPair(5));
 }
@@ -466,4 +500,19 @@ function drawBar(mywin, onColorPair, offColorPair, val, valMax, label, rowStart)
     mywin.attroff(nc.colorPair(2));
     mywin.refresh();
 }
-process.on('SIGWINCH',drawFn);
+/*
+process.on('SIGWINCH',function(){
+    //setTimeout(function(){
+    win = new nc.Window();
+    var winsize = process.stdout.getWindowSize();
+    //win.resize(winsize[1],winsize[0]);
+    //process.exit(0);
+    //statusWindow.resize(winsize[0],winsize[1]);
+    statusWindow.clear();
+    statusWindow.resize(7,winsize[0]-4);
+    
+    drawFn();
+    //},500);
+
+});
+*/
