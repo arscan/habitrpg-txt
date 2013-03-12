@@ -123,7 +123,7 @@ var renameTask = function(taskid, newtext){
 
 var deleteTask = function(taskid){
 
-        request.del(apiURL + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
+        request.del(apiURL + "/user/task/" + taskid).set('Content-Length',0).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
             currentIndex--;
             currentIndex = currentIndex < 0? 0: currentIndex;
         unsaved = false;
@@ -133,7 +133,7 @@ var deleteTask = function(taskid){
 }
 
 var doHabit = function(taskid, direction){
-        request.post(apiURL + "/user/tasks/" + taskid + "/" + direction).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
+        request.post(apiURL + "/user/tasks/" + taskid + "/" + direction).set('Content-Length',0).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
     unsaved = false;
     refresh();
 
