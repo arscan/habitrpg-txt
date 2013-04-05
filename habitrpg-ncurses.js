@@ -2,7 +2,8 @@ var nc = require('ncurses'),
     conf = require('nconf'),
     request = require('superagent'),
     apiURL, apiUser, apiToken,
-    win = new nc.Window();
+    win = new nc.Window()
+    connected = false;
 
 conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APIURL': 'https://habitrpg.com/api/v1',
@@ -38,7 +39,14 @@ var data = {
 
 };
 var refresh =  function(){
-        request.get(apiURL + "/user").set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
+        request.get(apiURL + "/user").set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(error,res){
+        if(error || !res.body.auth){ 
+            connected=false;
+            drawFn();
+            
+            return;
+        }
+        connected = true;
         data.username = res.body.auth.local ? res.body.auth.local.username : res.body.profile.name;
         data.level = res.body.stats.lvl;
         data.health = Math.ceil(res.body.stats.hp);
@@ -107,6 +115,7 @@ var refresh =  function(){
     }
 
 var setTaskStatus = function(taskid, taskstatus){
+    if(!connected) return;
 
         request.put(apiURL + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).send({completed:taskstatus}).end(function(res){
     unsaved = false;
@@ -116,6 +125,8 @@ var setTaskStatus = function(taskid, taskstatus){
 }
 var renameTask = function(taskid, newtext){
 
+    if(!connected) return;
+
         request.put(apiURL + "/user/task/" + taskid).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).send({text:newtext}).end(function(res){
     unsaved = false;
             refresh();
@@ -124,6 +135,8 @@ var renameTask = function(taskid, newtext){
 }
 
 var deleteTask = function(taskid){
+
+    if(!connected) return;
 
         request.del(apiURL + "/user/task/" + taskid).set('Content-Length',0).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
             currentIndex--;
@@ -135,6 +148,8 @@ var deleteTask = function(taskid){
 }
 
 var doHabit = function(taskid, direction){
+    if(!connected) return;
+
         request.post(apiURL + "/user/tasks/" + taskid + "/" + direction).set('Content-Length',0).set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).end(function(res){
     unsaved = false;
     refresh();
@@ -143,6 +158,8 @@ var doHabit = function(taskid, direction){
 }
 
 var createTask = function(tasktype, text){
+    if(!connected) return;
+
     if(tasktype == "daily"){
 
         data[tasktype].push({name: text, up:0,down:0,done:0}); 
@@ -205,7 +222,7 @@ var drawFn = function(){
 
     /* draw the header */
         
-    drawFooter(win,(unsaved?'unsaved':''));
+    drawFooter(win,connected?(unsaved?'unsaved':''):'disconnected');
 
         /* draw the status box */
     statusWindow.move(1,2);
