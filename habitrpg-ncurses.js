@@ -307,7 +307,7 @@ inputWindow.on('inputChar', function (c, i) {
         //console.log(i);
         //process.exit(0);
 
-        if((i === 106 || i === 259) && items.length){ // J, up arrow: move up
+        if((i === 106 || i === 259) && items.length){ // j, up arrow: move up
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex++;
@@ -319,7 +319,7 @@ inputWindow.on('inputChar', function (c, i) {
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
-        } else if((i === 107 || i === 258) && items.length){ // K, down arrow : move down
+        } else if((i === 107 || i === 258) && items.length){ // k, down arrow : move down
 
             win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
             currentIndex--;
@@ -331,6 +331,38 @@ inputWindow.on('inputChar', function (c, i) {
             win.cursor(items[currentIndex].cury,2);
             win.refresh();
 
+        } else if(i === 74 && items.length && currentIndex < items.length-1 && items[currentIndex].type === items[currentIndex+1].type){ // J move current selection one up
+
+
+            // TODO IMPLEMENT THIS IN THE API
+
+            // now move the cursor up
+
+            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
+            currentIndex++;
+            if(currentIndex > items.length -1){
+                currentIndex = 0;
+            }
+
+            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+            win.cursor(items[currentIndex].cury,2);
+            win.refresh();
+
+        } else if(i === 75 && items.length && currentIndex > 0 && items[currentIndex].type === items[currentIndex-1].type){ // K  move current selection one up
+
+            // TODO IMPLEMENT THIS IN THE API
+
+            // now move the cursor down
+             
+            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.NORMAL, nc.colorPair(0));
+            currentIndex--;
+            if(currentIndex < 0){
+                currentIndex = items.length-1;
+            }
+
+            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+            win.cursor(items[currentIndex].cury,2);
+            win.refresh();
         } else if((i === 120 || i === 32 || i === 10) && items.length){ // X and Space and Enter
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
                 unsaved = true;
