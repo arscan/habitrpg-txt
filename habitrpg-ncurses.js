@@ -65,7 +65,7 @@ var refresh =  function(){
 
                 while(res.body.tasks[res.body.habitIds[i]].history && habitsback >= 0 && res.body.tasks[res.body.habitIds[i]].history[habitsback] && res.body.tasks[res.body.habitIds[i]].history[habitsback].date > yesterdayDate){
                     
-                    if(prevVal > res.body.tasks[res.body.habitIds[i]].history[habitsback].value){
+                    if(prevVal >= res.body.tasks[res.body.habitIds[i]].history[habitsback].value){
                         data.habits[i].up++; 
                     } else {
                         data.habits[i].down++; 
@@ -83,6 +83,7 @@ var refresh =  function(){
             data.daily[i].up = res.body.tasks[res.body.dailyIds[i]].up;
             data.daily[i].down = res.body.tasks[res.body.dailyIds[i]].down;
             data.daily[i].done = res.body.tasks[res.body.dailyIds[i]].completed;
+            data.daily[i].value = res.body.tasks[res.body.dailyIds[i]].value;
         }
         var validtodos = 0;
         for(var i = 0; i<res.body.todoIds.length;i++){
@@ -94,6 +95,7 @@ var refresh =  function(){
                 data.todos[validtodos].up = res.body.tasks[res.body.todoIds[i]].up;
                 data.todos[validtodos].down = res.body.tasks[res.body.todoIds[i]].down;
                 data.todos[validtodos].done = res.body.tasks[res.body.todoIds[i]].completed;
+                data.todos[validtodos].value = res.body.tasks[res.body.todoIds[i]].value;
                 validtodos++;   
             }
             
