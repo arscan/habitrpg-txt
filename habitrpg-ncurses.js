@@ -162,15 +162,15 @@ var createTask = function(tasktype, text){
 
     if(tasktype == "daily"){
 
-        data[tasktype].push({name: text, up:0,down:0,done:0}); 
+        data[tasktype].push({name: text, up:0,down:0,done:0,value:0}); 
 
     } else {
 
-        data[tasktype + "s"].push({name: text, up:0,down:0,done:0}); 
+        data[tasktype + "s"].push({name: text, up:0,down:0,done:0,value:0}); 
     }
         unsaved=true;
         drawFn();
-        request.post(apiURL + "/user/task").set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).send({type:tasktype, text:text}).end(function(res){
+        request.post(apiURL + "/user/task").set('Accept', 'application/json').set('X-API-User', apiUser).set('X-API-Key', apiToken).send({type:tasktype, text:text, value:0}).end(function(res){
     unsaved = false;
             refresh();
 
