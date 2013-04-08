@@ -523,6 +523,7 @@ inputWindow.on('inputChar', function (c, i) {
         }
 
     }
+    drawFn();
     inputWindow.refresh();
 
 });
