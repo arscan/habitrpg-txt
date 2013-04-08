@@ -96,7 +96,7 @@ var refresh =  function(){
         var validtodos = 0;
         for(var i = 0; i<res.body.todoIds.length;i++){
 
-            if(!res.body.tasks[res.body.todoIds[i]].completed){
+            if(res.body && res.body.tasks && res.body.tasks[res.body.todoIds] && res.body.tasks[res.body.todoIds[i]] && !res.body.tasks[res.body.todoIds[i]].completed){
                 data.todos[validtodos] = {};
                 data.todos[validtodos].id = res.body.todoIds[i]
                 data.todos[validtodos].name = res.body.tasks[res.body.todoIds[i]].text;
@@ -523,6 +523,7 @@ inputWindow.on('inputChar', function (c, i) {
         }
 
     }
+    drawFn();
     inputWindow.refresh();
 
 });
