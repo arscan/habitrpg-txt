@@ -56,7 +56,7 @@ var refreshStatsView = (function(){
         statsWin.refresh();
 
         drawBar(1,2,Math.ceil(HabitAPI.data.stats.hp),HabitAPI.data.stats.maxHealth,'Health',2);
-        drawBar(1,2,HabitAPI.data.stats.exp,HabitAPI.data.stats.toNextLevel,'Exp',4);
+        drawBar(1,2,Math.floor(HabitAPI.data.stats.exp),HabitAPI.data.stats.toNextLevel,'Exp',4);
 
         return true;
     }
@@ -141,86 +141,52 @@ var refreshTask = (function(){
     }
     
     return function(){
+        var t; // for convenience
         items = [];
 
         drawHeader("Habits [" + HabitAPI.data.stats.habitToday + " today]");
         taskWin.cursor(taskWin.cury+1,0);
         for(var i = 0; i<HabitAPI.data.habitIds.length;i++){
+            t = HabitAPI.data.tasks[HabitAPI.data.habitIds[i]];
             taskWin.cursor(taskWin.cury+1,2);
-            HabitAPI.data.habitIds[i].cury = taskWin.cury;
-            //data.habits[i].type = 'habits';
-            items.push(HabitAPI.data.tasks[HabitAPI.data.habitIds[i]]);
-            taskWin.addstr('[' + (HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down == 0?' ':'' + Math.abs(HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down)) + '] ' + HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].text.substr(0,taskWin.width-5));
-            //taskWin.addstr('[ ]' + HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].text.substr(0,taskWin.width-5));
+            t.cury = taskWin.cury;
+            items.push(t);
+            taskWin.addstr('[' + (t.up - t.down == 0?' ':'' + Math.abs(t.up - t.down)) + '] ' + t.text.substr(0,taskWin.width-5));
 
-            if (HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down < 0){
+            if (t.up - t.down < 0){
                 taskWin.cursor(taskWin.cury,3);
                 taskWin.addstr('-');
             } 
             
         }
 
-        /*
+        taskWin.cursor(taskWin.cury+2,0);
+        drawHeader("Daily [" + HabitAPI.data.stats.dailyToday + " complete]");
+        taskWin.cursor(taskWin.cury+1,0);
 
-        win.cursor(win.cury+1,0);
-        for(var i = 0; i<data.habits.length;i++){
-            win.cursor(win.cury+1,2);
-            data.habits[i].cury = win.cury;
-            data.habits[i].type = 'habits';
-            items.push(data.habits[i]);
-            win.addstr('[' + (data.habits[i].up - data.habits[i].down == 0?' ':'' + Math.abs(data.habits[i].up - data.habits[i].down)) + '] ' + data.habits[i].name.substr(0,win.width-5));
+        for(var i = 0; i<HabitAPI.data.dailyIds.length;i++){
+            t = HabitAPI.data.tasks[HabitAPI.data.dailyIds[i]];
+            t.cury = taskWin.cury;
+            items.push(t);
 
-            if (data.habits[i].up - data.habits[i].down < 0){
-                win.cursor(win.cury,3);
-                win.addstr('-');
-                //win.chgat(win.cury, 3, 1, nc.attrs.NORMAL, nc.colorPair(3));
+            taskWin.cursor(taskWin.cury+1,2);
 
-            } 
-            habitsDone += data.habits[i].up;
-            habitsDone -= data.habits[i].down;
-            
-            
-        }
-        
-        taskWin.cursor(taskWin.cury-data.habits.length-1,0);
-        drawHeader("Habits [" + habitsDone + " today]");
-        win.cursor(taskWin.cury+data.habits.length+4,0);
-
-
-        var dailyDone = 0;
-
-        for(var i = 0; i<data.daily.length;i++){
-            win.cursor(win.cury+1,2);
-            data.daily[i].cury = win.cury;
-            data.daily[i].type = 'daily';
-            items.push(data.daily[i]);
-            win.addstr('[' + (data.daily[i].done?'X':' ') + '] ' + data.daily[i].name.substr(0,win.width-5));
-            dailyDone += data.daily[i].done;
-            
-
-        }
-        win.cursor(win.cury-data.daily.length-1,0);
-        drawHeader(win,"Daily [" + dailyDone + " complete]");
-        win.cursor(win.cury+data.daily.length+4,0);
-
-        var todosDone = 0;
-
-        for(var i = 0; i<data.todos.length;i++){
-            win.cursor(win.cury+1,2);
-            data.todos[i].cury = win.cury;
-            data.todos[i].type = 'todos';
-            items.push(data.todos[i]);
-            win.addstr('[' + (data.todos[i].done?'X':' ') + '] ' + data.todos[i].name.substr(0,win.width-5));
-            todosDone += data.todos[i].done;
+            taskWin.addstr('[' + (t.completed?'X':' ') + '] ' + t.text.substr(0,taskWin.width-5));
         }
 
-        win.cursor(win.cury-data.todos.length-1,0);
-        drawHeader(win,"Todos [" + todosDone + " completed today]");
-        win.cursor(win.cury+data.todos.length+4,0);
+        taskWin.cursor(taskWin.cury+2,0);
+        drawHeader("Todos [" + HabitAPI.data.stats.todoToday + " completed today]");
+        taskWin.cursor(taskWin.cury+1,0);
 
-        if(items.length > 0)
-            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
-        */
+        for(var i = 0; i<HabitAPI.data.todoIds.length;i++){
+            t = HabitAPI.data.tasks[HabitAPI.data.todoIds[i]];
+            if(!t.completed){
+                t.cury = taskWin.cury;
+                items.push(t);
+                taskWin.cursor(taskWin.cury+1,2);
+                taskWin.addstr('[' + (t.completed?'X':' ') + '] ' + t.text.substr(0,taskWin.width-5));
+            }
+        }
 
         taskWin.refresh();
     }
