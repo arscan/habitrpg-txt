@@ -12,13 +12,6 @@ conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APITOKEN': 'ABCABC'
 });
 
-
-/* deprecated */
-
-apiURL = conf.get('APIURL');
-apiUser = conf.get('APIUSER');
-apiToken = conf.get('APITOKEN');
-
 /* set some color pairs */
 nc.colorPair(1,nc.colors.BLACK,nc.colors.WHITE);
 nc.colorPair(2,nc.colors.WHITE,nc.colors.BLACK);
