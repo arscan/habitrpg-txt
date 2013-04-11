@@ -1,8 +1,9 @@
 var nc = require('ncurses'),
     conf = require('nconf'),
+    HabitAPI = require('./lib/habitapi.js'),
     request = require('superagent'),
     apiURL, apiUser, apiToken,
-    win = new nc.Window()
+    rootWin = new nc.Window(),
     connected = false;
 
 conf.argv().file({file: __dirname + "/config.json"}).defaults({
@@ -11,9 +12,276 @@ conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APITOKEN': 'ABCABC'
 });
 
+
+/* deprecated */
+
 apiURL = conf.get('APIURL');
 apiUser = conf.get('APIUSER');
 apiToken = conf.get('APITOKEN');
+
+/* set some color pairs */
+nc.colorPair(1,nc.colors.BLACK,nc.colors.WHITE);
+nc.colorPair(2,nc.colors.WHITE,nc.colors.BLACK);
+nc.colorPair(3,nc.colors.BLACK,nc.colors.CYAN);
+/* common functions */
+
+
+/* Window update Functions */
+
+var refreshStatsView = (function(){
+    var statsWin = new nc.Window(7,nc.cols-4);
+
+    function drawBar(onColorPair, offColorPair, val, valMax, label, rowStart){
+        var totalwidth = statsWin.width - 6,
+            onWidth = Math.floor(totalwidth * (val / valMax)),
+            offWidth = totalwidth - onWidth,
+            poststring = '' + val + '/' + valMax,
+            paddedstring = label + Array(totalwidth - label.length + 1 - poststring.length).join(' ') + poststring;
+
+        statsWin.cursor(rowStart,3);
+        statsWin.attron(nc.colorPair(1));
+        for (var i = 0; i < paddedstring.length; i++){
+            if(i > onWidth){
+                statsWin.attroff(nc.colorPair(1));
+                statsWin.attron(nc.colorPair(2));
+            }
+            statsWin.addstr(paddedstring.charAt(i));
+        }
+        statsWin.attroff(nc.colorPair(2));
+        statsWin.refresh();
+    }
+
+
+    return function(){
+        if(!HabitAPI.data.stats) false;
+
+        statsWin.move(1,2);
+        statsWin.box();
+        statsWin.cursor(0,2);
+        statsWin.addstr(HabitAPI.data.auth.local.username);
+        statsWin.addstr(' [lvl ' + HabitAPI.data.stats.lvl + ']');
+        statsWin.refresh();
+
+        drawBar(1,2,Math.ceil(HabitAPI.data.stats.hp),HabitAPI.data.stats.maxHealth,'Health',2);
+        drawBar(1,2,HabitAPI.data.stats.exp,HabitAPI.data.stats.toNextLevel,'Exp',4);
+
+        return true;
+    }
+
+})();
+
+var refreshStatusBar = (function(){
+    var statusBarWin = new nc.Window(1,nc.cols);
+
+    statusBarWin.move(nc.lines-2,0);
+
+    return function(){
+        var state = (HabitAPI.connected?(HabitAPI.unsaved?'unsaved':''):'disconnected');
+        statusBarWin.cursor(0,0);
+        statusBarWin.clrtoeol();
+        statusBarWin.addstr("HabitRPG (? for help)");
+        statusBarWin.addstr(0, nc.cols-(Math.min(state.length, nc.cols)), state, nc.cols);
+        statusBarWin.chgat(0, 0, nc.cols, nc.attrs.STANDOUT, nc.colorPair(5));
+        statusBarWin.refresh();
+
+    }
+
+})();
+
+var toggleHelp = (function(){
+    var helpWin = new nc.Window(15, nc.cols-8);
+
+    // TODO: make some helper funcs for this
+    
+    helpWin.hide();
+    helpWin.move(4,4);
+    helpWin.box();
+    helpWin.cursor(1,2);
+    helpWin.addstr('KEY  DESCRIPTION');
+    helpWin.cursor(2,2);
+    helpWin.hline(helpWin.width-4, nc.ACS.HLINE);
+    helpWin.cursor(3,2);
+    helpWin.addstr('  j  down a line');
+    helpWin.cursor(4,2);
+    helpWin.addstr('  k  up a line');
+    helpWin.cursor(5,2);
+    helpWin.addstr('spc  check off something');
+    helpWin.cursor(6,2);
+    helpWin.addstr('  -  down a habit');
+    helpWin.cursor(8,2);
+    helpWin.addstr(' :q quits');
+    helpWin.cursor(9,2);
+    helpWin.addstr(' :h <txt> add a habit');
+    helpWin.cursor(10,2);
+    helpWin.addstr(' :d <txt> add a daily');
+    helpWin.cursor(11,2);
+    helpWin.addstr(' :t <txt> add a todo');
+    helpWin.cursor(12,2);
+    helpWin.addstr(' :delete');
+
+    return function(){
+        if(helpWin.hidden){
+            helpWin.show();
+        } else {
+            helpWin.hide();
+        }
+        helpWin.refresh();
+    }
+
+})();
+
+
+var refreshTask = (function(){
+
+    var taskWin = new nc.Window(nc.lines-11, nc.cols, nc.cols),
+        items = [];
+
+    taskWin.move(9,0);
+    
+    function drawHeader(title){
+        taskWin.hline(taskWin.width-2, nc.ACS.HLINE);
+        taskWin.cursor(taskWin.cury,0);
+        taskWin.addstr('  ');
+        taskWin.cursor(taskWin.cury,3);
+        taskWin.addstr(' ' + title + ' ');
+        taskWin.cursor(taskWin.cury,0);
+    }
+    
+    return function(){
+        items = [];
+
+        drawHeader("Habits [" + HabitAPI.data.stats.habitToday + " today]");
+        taskWin.cursor(taskWin.cury+1,0);
+        for(var i = 0; i<HabitAPI.data.habitIds.length;i++){
+            taskWin.cursor(taskWin.cury+1,2);
+            HabitAPI.data.habitIds[i].cury = taskWin.cury;
+            //data.habits[i].type = 'habits';
+            items.push(HabitAPI.data.tasks[HabitAPI.data.habitIds[i]]);
+            taskWin.addstr('[' + (HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down == 0?' ':'' + Math.abs(HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down)) + '] ' + HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].text.substr(0,taskWin.width-5));
+            //taskWin.addstr('[ ]' + HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].text.substr(0,taskWin.width-5));
+
+            if (HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].up - HabitAPI.data.tasks[HabitAPI.data.habitIds[i]].down < 0){
+                taskWin.cursor(taskWin.cury,3);
+                taskWin.addstr('-');
+            } 
+            
+        }
+
+        /*
+
+        win.cursor(win.cury+1,0);
+        for(var i = 0; i<data.habits.length;i++){
+            win.cursor(win.cury+1,2);
+            data.habits[i].cury = win.cury;
+            data.habits[i].type = 'habits';
+            items.push(data.habits[i]);
+            win.addstr('[' + (data.habits[i].up - data.habits[i].down == 0?' ':'' + Math.abs(data.habits[i].up - data.habits[i].down)) + '] ' + data.habits[i].name.substr(0,win.width-5));
+
+            if (data.habits[i].up - data.habits[i].down < 0){
+                win.cursor(win.cury,3);
+                win.addstr('-');
+                //win.chgat(win.cury, 3, 1, nc.attrs.NORMAL, nc.colorPair(3));
+
+            } 
+            habitsDone += data.habits[i].up;
+            habitsDone -= data.habits[i].down;
+            
+            
+        }
+        
+        taskWin.cursor(taskWin.cury-data.habits.length-1,0);
+        drawHeader("Habits [" + habitsDone + " today]");
+        win.cursor(taskWin.cury+data.habits.length+4,0);
+
+
+        var dailyDone = 0;
+
+        for(var i = 0; i<data.daily.length;i++){
+            win.cursor(win.cury+1,2);
+            data.daily[i].cury = win.cury;
+            data.daily[i].type = 'daily';
+            items.push(data.daily[i]);
+            win.addstr('[' + (data.daily[i].done?'X':' ') + '] ' + data.daily[i].name.substr(0,win.width-5));
+            dailyDone += data.daily[i].done;
+            
+
+        }
+        win.cursor(win.cury-data.daily.length-1,0);
+        drawHeader(win,"Daily [" + dailyDone + " complete]");
+        win.cursor(win.cury+data.daily.length+4,0);
+
+        var todosDone = 0;
+
+        for(var i = 0; i<data.todos.length;i++){
+            win.cursor(win.cury+1,2);
+            data.todos[i].cury = win.cury;
+            data.todos[i].type = 'todos';
+            items.push(data.todos[i]);
+            win.addstr('[' + (data.todos[i].done?'X':' ') + '] ' + data.todos[i].name.substr(0,win.width-5));
+            todosDone += data.todos[i].done;
+        }
+
+        win.cursor(win.cury-data.todos.length-1,0);
+        drawHeader(win,"Todos [" + todosDone + " completed today]");
+        win.cursor(win.cury+data.todos.length+4,0);
+
+        if(items.length > 0)
+            win.chgat(items[currentIndex].cury, 2, win.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+        */
+
+        taskWin.refresh();
+    }
+})() 
+
+HabitAPI.onDataChange(function(){
+    refreshStatsView();
+    refreshStatusBar();
+    refreshTask();
+});
+
+HabitAPI.onConnectedChange(function(){
+    refreshStatusBar();
+});
+
+
+
+//setInterval(toggleHelp,4000);
+
+HabitAPI.init(conf.get("APIURL"),conf.get("APIUSER"),conf.get("APITOKEN"));
+
+
+
+/*
+function taskWindow(){
+
+
+
+    drawnFn = function(){
+
+    }
+
+
+    return drawFn;
+
+}
+
+function taskWindow(){
+
+
+    drawnFn = function(){
+
+    }
+
+
+    return drawFn;
+
+}
+
+
+function statsWindow
+
+HabitAPI.init(conf.get("APIURL"),conf.get("APIUSER"),conf.get("APITOKEN"));
+
 
 var data = {
     username:'something',
@@ -33,7 +301,7 @@ var data = {
     todos: [
         {name:'Ring Insurance', done:0},
     ],
-    rewards: [   /* NOT IMPLEMENTED YET */
+    rewards: [   
         { name: 'Leather Armor', 'price': 30, description: 'Helps with stuff'},
         ],
 
@@ -61,8 +329,7 @@ var refresh =  function(){
             data.habits[i].id = res.body.habitIds[i]
             data.habits[i].name = res.body.tasks[res.body.habitIds[i]].text;
             data.habits[i].up = 0;
-            data.habits[i].down = 0;
-            data.habits[i].value = res.body.tasks[res.body.habitIds[i]].value;
+            data.habits[i].down = 0; data.habits[i].value = res.body.tasks[res.body.habitIds[i]].value;
             var habitsback = 0;
             var yesterdayDate = new Date().getTime() - 1000*60*60*24;
             var prevVal = data.habits[i].value;
@@ -220,11 +487,11 @@ var drawFn = function(){
     items = [];
     win.clear();
 
-    /* draw the header */
+    // draw the header 
         
     drawFooter(win,connected?(unsaved?'unsaved':''):'disconnected');
 
-        /* draw the status box */
+        // draw the status box 
     statusWindow.move(1,2);
     statusWindow.box();
     statusWindow.cursor(0,2);
@@ -554,6 +821,8 @@ function drawBar(mywin, onColorPair, offColorPair, val, valMax, label, rowStart)
     mywin.attroff(nc.colorPair(2));
     mywin.refresh();
 }
+
+*/
 /*
 process.on('SIGWINCH',function(){
     //setTimeout(function(){
