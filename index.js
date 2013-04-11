@@ -1,10 +1,7 @@
 var nc = require('ncurses'),
     conf = require('nconf'),
     HabitAPI = require('./lib/habitapi.js'),
-    request = require('superagent'),
-    apiURL, apiUser, apiToken,
-    rootWin = new nc.Window(),
-    connected = false;
+    rootWin = new nc.Window();
 
 conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APIURL': 'https://habitrpg.com/api/v1',
