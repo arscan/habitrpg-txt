@@ -88,7 +88,7 @@ var refreshStatusBar = (function(){
 // the help bar only needs to be toggled, so just expose that function
 
 var toggleHelp = (function(){
-    var helpWin = new nc.Window(15, nc.cols-8);
+    var helpWin = new nc.Window(17, nc.cols-8);
 
     // TODO: make some helper funcs for this
     
@@ -107,15 +107,19 @@ var toggleHelp = (function(){
     helpWin.addstr('spc  check off something');
     helpWin.cursor(6,2);
     helpWin.addstr('  -  down a habit');
+    helpWin.cursor(7,2);
+    helpWin.addstr('  r  manually refresh');
     helpWin.cursor(8,2);
-    helpWin.addstr(' :q quits');
-    helpWin.cursor(9,2);
-    helpWin.addstr(' :h <txt> add a habit');
+    helpWin.addstr('  ~  show log');
     helpWin.cursor(10,2);
-    helpWin.addstr(' :d <txt> add a daily');
+    helpWin.addstr(' :q quits');
     helpWin.cursor(11,2);
-    helpWin.addstr(' :t <txt> add a todo');
+    helpWin.addstr(' :h <txt> add a habit');
     helpWin.cursor(12,2);
+    helpWin.addstr(' :d <txt> add a daily');
+    helpWin.cursor(13,2);
+    helpWin.addstr(' :t <txt> add a todo');
+    helpWin.cursor(14,2);
     helpWin.addstr(' :delete');
 
     helpWin.on('inputChar', function (c, i) {
@@ -158,6 +162,8 @@ var TaskList = (function(){
     return {
         refresh: function(){
             var t; // for convenience
+            taskWin.erase();
+            taskWin.refresh();
             items = [];
             taskWin.cursor(0,0);
 
@@ -206,8 +212,11 @@ var TaskList = (function(){
             }
 
             // draw where the cursor is now
-            if(items.length > 0)
+            if(items.length > 0 && items[currentIndex] && items[currentIndex].cury){
                 taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+            } else {
+                currentIndex = 0;
+            }
 
             taskWin.refresh();
         },
@@ -223,33 +232,36 @@ var TaskList = (function(){
         checkItem: function(){
             if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todo'){
 
-                // TODO: mAKe ThiS ACTuALLY WORK (the save isn't propogated before the save)
                 HabitAPI.completeTask(items[currentIndex].id, !items[currentIndex].completed);
-                //unsaved = true;
-                //items[currentIndex].done = (items[currentIndex].done * -1) + 1;
-                //drawFn();
-                //setTaskStatus(items[currentIndex].id,items[currentIndex].done);
-                taskWin.refresh();
-            } else if(items[currentIndex].type == 'habits'){
-                unsaved = true;
-                items[currentIndex].up++;
-                drawFn();
-                doHabit(items[currentIndex].id,'up');
+
+            } else if(items[currentIndex].type == 'habit'){
+                HabitAPI.updateHabit(items[currentIndex].id,"up");
             }
 
-            if(items[currentIndex].type == 'todos'){
+            if(items[currentIndex].type == 'todo'){
                 currentIndex--;
             }
-            /*
-            if(items.length){
-                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(0));
-                currentIndex += inc;
-                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(5));
-                taskWin.refresh();
-            }
-            */
-        }
+            TaskList.refresh();
+        },
+        decrementHabit: function(){
 
+            if(items[currentIndex].type == 'habit'){
+                HabitAPI.updateHabit(items[currentIndex].id,"down");
+            }
+            TaskList.refresh();
+
+        },
+        renameTask: function(newtext){
+
+          HabitAPI.renameTask(items[currentIndex].id, newtext);
+          TaskList.refresh();
+         },
+        deleteTask: function(){
+        
+          HabitAPI.deleteTask(items[currentIndex].id);
+          currentIndex--;
+          TaskList.refresh();
+        }
         
     }
 })(); 
@@ -268,12 +280,12 @@ var LogWindow = (function(){
     //});
 
     function refresh(){
-        logWindow.clear();
+        logWindow.erase();
         logWindow.hline(logWindow.width, nc.ACS.HLINE);
         for(var i = 0; i<lines.length;i++){
             logWindow.cursor(logWindow.cury+1,0);
             if(typeof lines[i] != "undefined"){
-                logWindow.addstr('# ' + lines[i]);
+                logWindow.addstr('# ' + lines[i],nc.cols-1);
             }
         }
         logWindow.cursor(logWindow.cury+1,0);
@@ -339,16 +351,15 @@ LogWindow.show();
     //setInterval(function(){inputWin.top()},1000);
 
     inputWin.on('inputChar', function (c, i) {
+
         LogWindow.keyPress(i);
-        //helpWindow.hide();
+
         if(inputMode == 'normal'){
             inputWin.clear();
-            //console.log(i);
-            //process.exit(0);
             if((i === 126 || i === 96)){ // ~, `  toggle debug window
 
                 LogWindow.toggle();
-                inputWin.top();
+                inputWin.top(); // logwindow gets put on top, which kills the input stream. this fixes that.
 
             } if((i === 106 || i === 259)){ // j, up arrow: move up
 
@@ -370,24 +381,24 @@ LogWindow.show();
 
                 TaskList.moveCursor(-1);
 
-            } else if((i === 120 || i === 32 || i === 10)){ // X and Space and Enter
+            } else if(i === 120 || i === 32 || i === 10){ // X and Space and Enter
 
                 TaskList.checkItem();
 
-            } else if((i === 100 || i === 45) && items.length){ // d, minus to decrement whatever you are on
-                unsaved = true;
-                if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
-                    setTaskStatus(items[currentIndex].id,items[currentIndex].done);
+            } else if(i === 100 || i === 45){ // d, minus to decrement whatever you are on
 
-                } else if(items[currentIndex].type == 'habits'){
-                    items[currentIndex].down += 1;
-                    drawFn();
-                    doHabit(items[currentIndex].id,'down');
-                }
+                TaskList.decrementHabit();
+
+            } else if(i === 114){ // r, manual refresh 
+
+                HabitAPI.refresh();
+
             }  else if(i === 63){
+
                 toggleHelp();
-                //helpWindow.show();
+
             }  else if(i === 58){
+
                 inputMode = 'command';
                 inputWin.inbuffer = '';
                 nc.showCursor = true;
@@ -437,8 +448,7 @@ LogWindow.show();
                                     inputWin.inbuffer = '';
                                     nc.showCursor = false;
                                     inputMode = 'normal';
-                                    unsaved = true;
-                                    createTask("todo",args);
+                                    HabitAPI.createTask("todo",args);
                                 }
                                 break;
                             case 'h':
@@ -447,8 +457,7 @@ LogWindow.show();
                                     inputWin.inbuffer = '';
                                     nc.showCursor = false;
                                     inputMode = 'normal';
-                                    unsaved = true;
-                                    createTask("habit",args);
+                                    HabitAPI.createTask("habit",args);
                                 }
                                 break;
                             case 'd':
@@ -457,8 +466,7 @@ LogWindow.show();
                                     inputWin.inbuffer = '';
                                     nc.showCursor = false;
                                     inputMode = 'normal';
-                                    unsaved = true;
-                                    createTask("daily",args);
+                                    HabitAPI.createTask("daily",args);
                                 }
                                 break;
                             case 'r':
@@ -467,18 +475,16 @@ LogWindow.show();
                                     inputWin.inbuffer = '';
                                     nc.showCursor = false;
                                     inputMode = 'normal';
-                                    unsaved = true;
-                                    renameTask(items[currentIndex].id,args);
+                                    TaskList.renameTask(args);
                                 }
                                 break;
 
                             case 'delete':
-                                deleteTask(items[currentIndex].id);
+                                TaskList.deleteTask();
                                 inputWin.clear();
                                 inputWin.inbuffer = '';
                                 nc.showCursor = false;
                                 inputMode = 'normal';
-                                unsaved = true;
                                 break;
 
                             case 'q':
@@ -520,6 +526,10 @@ HabitAPI.onConnectedChange(function(){
 
 HabitAPI.onLog(function(text){
     LogWindow.log(text);
+});
+
+HabitAPI.onUnsavedChange(function(){
+    refreshStatusBar();
 });
 
 //setInterval(toggleHelp,4000);
