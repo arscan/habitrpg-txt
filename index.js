@@ -212,6 +212,7 @@ var TaskList = (function(){
             taskWin.refresh();
         },
         moveCursor: function(inc){
+            LogWindow.log("Moving cursor " + (inc > 0 ? "down" : "up"));
             if(currentIndex + inc < items.length && currentIndex + inc >= 0){
                 taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(0));
                 currentIndex += inc;
@@ -253,6 +254,71 @@ var TaskList = (function(){
     }
 })(); 
 
+var LogWindow = (function(){
+
+    var logWindow = new nc.Window(20, nc.cols, nc.cols),
+        lines = new Array(17),
+        keyPress = "";
+
+    logWindow.move(nc.lines - 22,0);
+
+    // an example of how to debug stuck on input error
+    //logWindow.on('inputChar', function (c, i) {
+    //    LogWindow.log("Stuck on Input")
+    //});
+
+    function refresh(){
+        logWindow.clear();
+        logWindow.hline(logWindow.width, nc.ACS.HLINE);
+        for(var i = 0; i<lines.length;i++){
+            logWindow.cursor(logWindow.cury+1,0);
+            if(typeof lines[i] != "undefined"){
+                logWindow.addstr('# ' + lines[i]);
+            }
+        }
+        logWindow.cursor(logWindow.cury+1,0);
+        logWindow.hline(logWindow.width, nc.ACS.HLINE);
+        logWindow.cursor(logWindow.cury+1,0);
+        logWindow.addstr('# ' + keyPress);
+        logWindow.refresh();
+    }
+    
+    return {
+        log: function(msg){
+            lines.push(msg);
+            logWindow.cursor(0,0);
+            if(lines.length > 17){
+                lines.shift();
+            }
+            refresh();
+            
+        },
+        
+        // I got tired of key presses filling up my log.  Make a distinct line for it
+        keyPress: function(key){
+            keyPress = "Pressed key " + key;
+            refresh();
+        },
+        show: function(){
+            logWindow.show();
+            logWindow.bottom();
+
+        },
+        hide: function(){
+            logWindow.hide();
+        },
+        toggle: function(){
+            if(logWindow.hidden){
+                logWindow.show();
+            } else {
+                logWindow.hide();
+            }
+
+        }
+    }
+})();
+
+LogWindow.show();
 
 // Input window
 // It doesn't expose anything
@@ -267,14 +333,24 @@ var TaskList = (function(){
     inputWin.move(nc.lines-1,0);
     inputWin.refresh();
 
+    // Input comes from the topmost window
+    // If for some reason this window loses focus, do inputWin.top()
+
+    //setInterval(function(){inputWin.top()},1000);
+
     inputWin.on('inputChar', function (c, i) {
+        LogWindow.keyPress(i);
         //helpWindow.hide();
         if(inputMode == 'normal'){
             inputWin.clear();
             //console.log(i);
             //process.exit(0);
+            if((i === 126 || i === 96)){ // ~, `  toggle debug window
 
-            if((i === 106 || i === 259)){ // j, up arrow: move up
+                LogWindow.toggle();
+                inputWin.top();
+
+            } if((i === 106 || i === 259)){ // j, up arrow: move up
 
                 TaskList.moveCursor(1);
 
@@ -431,6 +507,7 @@ var TaskList = (function(){
 
 })();
 
+
 HabitAPI.onDataChange(function(){
     refreshStatsView();
     refreshStatusBar();
@@ -439,6 +516,10 @@ HabitAPI.onDataChange(function(){
 
 HabitAPI.onConnectedChange(function(){
     refreshStatusBar();
+});
+
+HabitAPI.onLog(function(text){
+    LogWindow.log(text);
 });
 
 //setInterval(toggleHelp,4000);
