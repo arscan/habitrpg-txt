@@ -2,6 +2,8 @@ var nc = require('ncurses'),
     conf = require('nconf'),
     HabitAPI = require('./lib/habitapi.js'),
     rootWin = new nc.Window();
+//    inputWin,
+//    inputMode;
 
 conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APIURL': 'https://habitrpg.com/api/v1',
@@ -17,6 +19,8 @@ nc.colorPair(3,nc.colors.BLACK,nc.colors.CYAN);
 
 
 /* Window update Functions */
+
+// the stats bar only needs to updated, so just expose that function
 
 var refreshStatsView = (function(){
     var statsWin = new nc.Window(7,nc.cols-4);
@@ -44,11 +48,10 @@ var refreshStatsView = (function(){
 
     return function(){
         if(!HabitAPI.data.stats) false;
-
         statsWin.move(1,2);
         statsWin.box();
         statsWin.cursor(0,2);
-        statsWin.addstr(HabitAPI.data.auth.local.username);
+        statsWin.addstr(HabitAPI.data.auth.local?HabitAPI.data.auth.local.username:HabitAPI.data.profile.name);
         statsWin.addstr(' [lvl ' + HabitAPI.data.stats.lvl + ']');
         statsWin.refresh();
 
@@ -59,6 +62,9 @@ var refreshStatsView = (function(){
     }
 
 })();
+
+// the status bar only needs to be refreshed (on connection changes, etc)
+// so only expose that
 
 var refreshStatusBar = (function(){
     var statusBarWin = new nc.Window(1,nc.cols);
@@ -77,6 +83,9 @@ var refreshStatusBar = (function(){
     }
 
 })();
+
+
+// the help bar only needs to be toggled, so just expose that function
 
 var toggleHelp = (function(){
     var helpWin = new nc.Window(15, nc.cols-8);
@@ -109,6 +118,13 @@ var toggleHelp = (function(){
     helpWin.cursor(12,2);
     helpWin.addstr(' :delete');
 
+    helpWin.on('inputChar', function (c, i) {
+        helpWin.hide();
+        TaskList.refresh();
+        //statusWindow.refresh();
+        
+    });
+
     return function(){
         if(helpWin.hidden){
             helpWin.show();
@@ -120,11 +136,13 @@ var toggleHelp = (function(){
 
 })();
 
+// expose a bunch of functions for task window, so wrap it up in an object
 
-var refreshTask = (function(){
+var TaskList = (function(){
 
     var taskWin = new nc.Window(nc.lines-11, nc.cols, nc.cols),
-        items = [];
+        items = []
+        currentIndex = 0;
 
     taskWin.move(9,0);
     
@@ -137,69 +155,291 @@ var refreshTask = (function(){
         taskWin.cursor(taskWin.cury,0);
     }
     
-    return function(){
-        var t; // for convenience
-        items = [];
+    return {
+        refresh: function(){
+            var t; // for convenience
+            items = [];
+            taskWin.cursor(0,0);
 
-        drawHeader("Habits [" + HabitAPI.data.stats.habitToday + " today]");
-        taskWin.cursor(taskWin.cury+1,0);
-        for(var i = 0; i<HabitAPI.data.habitIds.length;i++){
-            t = HabitAPI.data.tasks[HabitAPI.data.habitIds[i]];
-            taskWin.cursor(taskWin.cury+1,2);
-            t.cury = taskWin.cury;
-            items.push(t);
-            taskWin.addstr('[' + (t.up - t.down == 0?' ':'' + Math.abs(t.up - t.down)) + '] ' + t.text.substr(0,taskWin.width-5));
-
-            if (t.up - t.down < 0){
-                taskWin.cursor(taskWin.cury,3);
-                taskWin.addstr('-');
-            } 
-            
-        }
-
-        taskWin.cursor(taskWin.cury+2,0);
-        drawHeader("Daily [" + HabitAPI.data.stats.dailyToday + " complete]");
-        taskWin.cursor(taskWin.cury+1,0);
-
-        for(var i = 0; i<HabitAPI.data.dailyIds.length;i++){
-            t = HabitAPI.data.tasks[HabitAPI.data.dailyIds[i]];
-            t.cury = taskWin.cury;
-            items.push(t);
-
-            taskWin.cursor(taskWin.cury+1,2);
-
-            taskWin.addstr('[' + (t.completed?'X':' ') + '] ' + t.text.substr(0,taskWin.width-5));
-        }
-
-        taskWin.cursor(taskWin.cury+2,0);
-        drawHeader("Todos [" + HabitAPI.data.stats.todoToday + " completed today]");
-        taskWin.cursor(taskWin.cury+1,0);
-
-        for(var i = 0; i<HabitAPI.data.todoIds.length;i++){
-            t = HabitAPI.data.tasks[HabitAPI.data.todoIds[i]];
-            if(!t.completed){
+            drawHeader("Habits [" + HabitAPI.data.stats.habitToday + " today]");
+            taskWin.cursor(taskWin.cury+1,0);
+            for(var i = 0; i<HabitAPI.data.habitIds.length;i++){
+                t = HabitAPI.data.tasks[HabitAPI.data.habitIds[i]];
+                taskWin.cursor(taskWin.cury+1,2);
                 t.cury = taskWin.cury;
                 items.push(t);
+                taskWin.addstr('[' + (t.up - t.down == 0?' ':'' + Math.abs(t.up - t.down)) + '] ' + t.text.substr(0,taskWin.width-5));
+
+                if (t.up - t.down < 0){
+                    taskWin.cursor(taskWin.cury,3);
+                    taskWin.addstr('-');
+                } 
+                
+            }
+
+            taskWin.cursor(taskWin.cury+2,0);
+            drawHeader("Daily [" + HabitAPI.data.stats.dailyToday + " complete]");
+            taskWin.cursor(taskWin.cury+1,0);
+
+            for(var i = 0; i<HabitAPI.data.dailyIds.length;i++){
+                t = HabitAPI.data.tasks[HabitAPI.data.dailyIds[i]];
+
                 taskWin.cursor(taskWin.cury+1,2);
+                t.cury = taskWin.cury;
+                items.push(t);
+
                 taskWin.addstr('[' + (t.completed?'X':' ') + '] ' + t.text.substr(0,taskWin.width-5));
+            }
+
+            taskWin.cursor(taskWin.cury+2,0);
+            drawHeader("Todos [" + HabitAPI.data.stats.todoToday + " completed today]");
+            taskWin.cursor(taskWin.cury+1,0);
+
+            for(var i = 0; i<HabitAPI.data.todoIds.length;i++){
+                t = HabitAPI.data.tasks[HabitAPI.data.todoIds[i]];
+                if(!t.completed){
+                    taskWin.cursor(taskWin.cury+1,2);
+                    taskWin.addstr('[' + (t.completed?'X':' ') + '] ' + t.text.substr(0,taskWin.width-5));
+                    t.cury = taskWin.cury;
+                    items.push(t);
+                }
+            }
+
+            // draw where the cursor is now
+            if(items.length > 0)
+                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.STANDOUT, nc.colorPair(5));
+
+            taskWin.refresh();
+        },
+        moveCursor: function(inc){
+            if(currentIndex + inc < items.length && currentIndex + inc >= 0){
+                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(0));
+                currentIndex += inc;
+                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(5));
+                taskWin.refresh();
+            }
+        },
+        checkItem: function(){
+            if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todo'){
+
+                // TODO: mAKe ThiS ACTuALLY WORK (the save isn't propogated before the save)
+                HabitAPI.completeTask(items[currentIndex].id, !items[currentIndex].completed);
+                //unsaved = true;
+                //items[currentIndex].done = (items[currentIndex].done * -1) + 1;
+                //drawFn();
+                //setTaskStatus(items[currentIndex].id,items[currentIndex].done);
+                taskWin.refresh();
+            } else if(items[currentIndex].type == 'habits'){
+                unsaved = true;
+                items[currentIndex].up++;
+                drawFn();
+                doHabit(items[currentIndex].id,'up');
+            }
+
+            if(items[currentIndex].type == 'todos'){
+                currentIndex--;
+            }
+            /*
+            if(items.length){
+                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(0));
+                currentIndex += inc;
+                taskWin.chgat(items[currentIndex].cury, 2, taskWin.width-5, nc.attrs.NORMAL, nc.colorPair(5));
+                taskWin.refresh();
+            }
+            */
+        }
+
+        
+    }
+})(); 
+
+
+// Input window
+// It doesn't expose anything
+// It just writes to itself and calls other stuffs
+
+(function(){
+
+    var inputWin = new nc.Window(1,nc.cols),
+        inputMode = 'normal';
+
+    nc.showCursor = false;
+    inputWin.move(nc.lines-1,0);
+    inputWin.refresh();
+
+    inputWin.on('inputChar', function (c, i) {
+        //helpWindow.hide();
+        if(inputMode == 'normal'){
+            inputWin.clear();
+            //console.log(i);
+            //process.exit(0);
+
+            if((i === 106 || i === 259)){ // j, up arrow: move up
+
+                TaskList.moveCursor(1);
+
+            } else if((i === 107 || i === 258)){ // k, down arrow : move down
+
+                TaskList.moveCursor(-1);
+
+            } else if(i === 74){ // J move current selection one up
+
+                // TODO IMPLEMENT THIS IN THE API
+
+                TaskList.moveCursor(1);
+
+            } else if(i === 75){ // K  move current selection one up
+
+                // TODO IMPLEMENT THIS IN THE API
+
+                TaskList.moveCursor(-1);
+
+            } else if((i === 120 || i === 32 || i === 10)){ // X and Space and Enter
+
+                TaskList.checkItem();
+
+            } else if((i === 100 || i === 45) && items.length){ // d, minus to decrement whatever you are on
+                unsaved = true;
+                if(items[currentIndex].type == 'daily' || items[currentIndex].type == 'todos'){
+                    setTaskStatus(items[currentIndex].id,items[currentIndex].done);
+
+                } else if(items[currentIndex].type == 'habits'){
+                    items[currentIndex].down += 1;
+                    drawFn();
+                    doHabit(items[currentIndex].id,'down');
+                }
+            }  else if(i === 63){
+                toggleHelp();
+                //helpWindow.show();
+            }  else if(i === 58){
+                inputMode = 'command';
+                inputWin.inbuffer = '';
+                nc.showCursor = true;
+
             }
         }
 
-        taskWin.refresh();
-    }
-})() 
+
+        if(inputMode == 'command'){
+            if(i === 9){
+                inputMode = 'normal';
+                inputWin.inbuffer = '';
+                nc.showCursor = false;
+                inputWin.refresh();
+            }else if(i === 330){
+
+                var prev_x = inputWin.curx;
+                inputWin.delch(inputWin.height-1, inputWin.curx);
+                inputWin.inbuffer = inputWin.inbuffer.substring(0, inputWin.curx-1) + inputWin.inbuffer.substring(inputWin.curx);
+                inputWin.cursor(inputWin.height-1, prev_x);
+                if(inputWin.inbuffer.length == 0){
+                    inputMode = 'normal';
+                    nc.showCursor = false;
+                }
+                inputWin.refresh();
+
+            } else if (i === 127 && inputWin.curx > 0) {
+                var prev_x = inputWin.curx-1;
+                inputWin.delch(inputWin.height-1, prev_x);
+                inputWin.inbuffer = inputWin.inbuffer.substring(0, prev_x) + inputWin.inbuffer.substring(prev_x+1);
+                inputWin.cursor(inputWin.height-1, prev_x);
+                if(inputWin.inbuffer.length == 0){
+                    inputMode = 'normal';
+                    nc.showCursor = false;
+                }
+                inputWin.refresh();
+            } else if (i === nc.keys.NEWLINE) {
+                if (inputWin.inbuffer.length) {
+
+                    if (inputWin.inbuffer[0] === ':') {
+                        var cmd = inputWin.inbuffer.substring(1).split(' ', 1).join('').trim(),
+                            args = inputWin.inbuffer.substring(inputWin.inbuffer.indexOf(cmd)+cmd.length+1).trim();
+                        switch (cmd.toLowerCase()) {
+                            case 't':
+                                if (args.length) {
+                                    inputWin.clear();
+                                    inputWin.inbuffer = '';
+                                    nc.showCursor = false;
+                                    inputMode = 'normal';
+                                    unsaved = true;
+                                    createTask("todo",args);
+                                }
+                                break;
+                            case 'h':
+                                if (args.length) {
+                                    inputWin.clear();
+                                    inputWin.inbuffer = '';
+                                    nc.showCursor = false;
+                                    inputMode = 'normal';
+                                    unsaved = true;
+                                    createTask("habit",args);
+                                }
+                                break;
+                            case 'd':
+                                if (args.length) {
+                                    inputWin.clear();
+                                    inputWin.inbuffer = '';
+                                    nc.showCursor = false;
+                                    inputMode = 'normal';
+                                    unsaved = true;
+                                    createTask("daily",args);
+                                }
+                                break;
+                            case 'r':
+                                if (args.length) {
+                                    inputWin.clear();
+                                    inputWin.inbuffer = '';
+                                    nc.showCursor = false;
+                                    inputMode = 'normal';
+                                    unsaved = true;
+                                    renameTask(items[currentIndex].id,args);
+                                }
+                                break;
+
+                            case 'delete':
+                                deleteTask(items[currentIndex].id);
+                                inputWin.clear();
+                                inputWin.inbuffer = '';
+                                nc.showCursor = false;
+                                inputMode = 'normal';
+                                unsaved = true;
+                                break;
+
+                            case 'q':
+                                nc.cleanup();
+                                process.exit(0);
+                                break;
+                            default:
+                                inputWin.clear();
+                                inputWin.addstr('Unknown command: ' + cmd);
+                                inputMode = 'normal';
+                                nc.showCursor = false;
+
+                        }
+                    }
+                }
+
+            } else if (i >= 32 && i <= 126 && inputWin.curx < inputWin.width-4) {
+                inputWin.echochar(i);
+                inputWin.inbuffer += c;
+            }
+
+        }
+        inputWin.refresh();
+
+    });
+
+})();
 
 HabitAPI.onDataChange(function(){
     refreshStatsView();
     refreshStatusBar();
-    refreshTask();
+    TaskList.refresh();
 });
 
 HabitAPI.onConnectedChange(function(){
     refreshStatusBar();
 });
-
-
 
 //setInterval(toggleHelp,4000);
 
