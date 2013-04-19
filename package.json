@@ -6,7 +6,8 @@
     "ncurses":"git://github.com/mscdex/node-ncurses.git#master",
     "superagent": "*",
     "nconf": "*",
-    "underscore": "*"
+    "underscore": "*",
+    "charm": "*"
   },
   "main": "./habitrpg-ncurses",
   "engines": { "node": ">0.6.0" },
