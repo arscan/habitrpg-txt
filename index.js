@@ -1,52 +1,34 @@
 var conf = require('nconf'),
     tty = require('tty'),
-    HabitAPI = require('./lib/habitapi.js');
+    HabitAPI = require('./lib/habitapi.js'),
+    view = require('./lib/charmview.js');
 
 conf.argv().file({file: __dirname + "/config.json"}).defaults({
     'APIURL': 'https://habitrpg.com/api/v1',
     'APIUSER': '001122',
     'APITOKEN': 'ABCABC',
-    'VIEWMODE': 'ncurses'
 });
 
 
-// HabitAPI is not aware of the ncurses view
-// the ncurses view is aware of the HabitAPI
-// this allows me to add a console view easily (consoleview)
-if (conf.get("VIEWMODE").toLowerCase() == "charm"){
-
-
-
-    //process.openStdin();
-    if (typeof process.stdin.fd === 'number' && tty.isatty(process.stdin.fd)) {
-        if (process.stdin.setRawMode) {
-            process.stdin.setRawMode(true);
-        }
-        else tty.setRawMode(true);
+//process.openStdin();
+if (typeof process.stdin.fd === 'number' && tty.isatty(process.stdin.fd)) {
+    if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(true);
     }
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    process.stdin.on("data", function(key){
-        key = "" + key;
-        if(key.charCodeAt() === 3){
-            process.exit(0);
-        } else {
-            keyPress(key);
-        }
-        
-    });
-    view = require('./lib/charmview.js');
-
-
-} else if (conf.get("VIEWMODE").toLowerCase() == "ncurses"){
-
-    view = require('./lib/ncursesview.js');
-
-} else {
-
-    console.log("view not found");
-
+    else tty.setRawMode(true);
 }
+process.stdin.resume();
+process.stdin.setEncoding('utf8');
+process.stdin.on("data", function(key){
+    key = "" + key;
+    if(key.charCodeAt() === 3){
+        process.exit(0);
+    } else {
+        keyPress(key);
+    }
+    
+});
+
 function keyPress(key){
     view.LogWindow.keyPress(key);
 

@@ -1,17 +1,16 @@
-{ "name": "habitrpg-ncurses",
-  "version": "0.1.0",
+{ "name": "habitrpg-txt",
+  "version": "0.2.0",
   "author": "Rob Scanlon <robscanlon@gmail.com>",
-  "description": "A command line interface for habitrpg.com using ncurses",
+  "description": "A txt based interface for habitrpg.com",
   "dependencies": {
-    "ncurses":"git://github.com/mscdex/node-ncurses.git#master",
     "superagent": "*",
     "nconf": "*",
     "underscore": "*",
     "charm": "*"
   },
-  "main": "./habitrpg-ncurses",
+  "main": "./index.js",
   "engines": { "node": ">0.6.0" },
-  "keywords": [ "habitrpg", "ncurses", "habitrpg-ncurses"],
-  "licenses": [ { "type": "MIT", "url": "http://github.com/arscan/habitrpg-ncurses/raw/master/LICENSE" } ],
-  "repository": { "type": "git", "url": "http://github.com/arscan/habitrpg-ncurses/habitrpg-ncurses.git" }
+  "keywords": [ "habitrpg", "habitrpg-txt"],
+  "licenses": [ { "type": "MIT", "url": "http://github.com/arscan/habitrpg-txt/raw/master/LICENSE" } ],
+  "repository": { "type": "git", "url": "http://github.com/arscan/habitrpg-txt/habitrpg-txt.git" }
 }
