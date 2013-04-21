@@ -10,16 +10,6 @@ conf.argv().file({file: __dirname + "/config.json"}).defaults({
 });
 
 
-// view interface
-// this needs to be cleaned up
-// good enough for now
-view = {
-    refreshStatsView: function(){},
-    refreshStatusBar: function(){},
-    TaskList: {refresh: function(){}},
-    LogWindow: {log: function(text){console.log(text)}}
-}
-
 // HabitAPI is not aware of the ncurses view
 // the ncurses view is aware of the HabitAPI
 // this allows me to add a console view easily (consoleview)
@@ -28,22 +18,20 @@ if (conf.get("VIEWMODE").toLowerCase() == "charm"){
 
 
     //process.openStdin();
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-    process.stdin.once('^C', process.exit);
     if (typeof process.stdin.fd === 'number' && tty.isatty(process.stdin.fd)) {
         if (process.stdin.setRawMode) {
             process.stdin.setRawMode(true);
         }
         else tty.setRawMode(true);
     }
-    process.stdin.on("data", function(input){
-        if(input == '\3'){
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+    process.stdin.on("data", function(key){
+        key = "" + key;
+        if(key.charCodeAt() === 3){
             process.exit(0);
         } else {
-
-            keyPress(input.toString());
-
+            keyPress(key);
         }
         
     });
@@ -59,68 +47,60 @@ if (conf.get("VIEWMODE").toLowerCase() == "charm"){
     console.log("view not found");
 
 }
-var inputMode = 'normal';
 function keyPress(key){
     view.LogWindow.keyPress(key);
-     var i = 0; // remove when done with everything
 
-    if(inputMode == 'normal'){
+    if(view.InputWindow.getMode() == 'normal'){
         if(key === '~' || key === '`'){ // ~, `  toggle debug window
 
             view.LogWindow.toggle();
 
-        } if((i === 106 || i === 258)){ // j, up arrow: move up
+        } if(key == 'j'){ // j, up arrow: move up
 
-            //TaskList.moveCursor(1);
+            view.TaskList.moveCursor(1);
 
-        } else if((i === 107 || i === 259)){ // k, down arrow : move down
+        } else if(key == 'k'){ // k, down arrow : move down
 
-            //TaskList.moveCursor(-1);
+            view.TaskList.moveCursor(-1);
 
-        } else if(i === 74){ // J move one section down
+        } else if(key == 'J'){ // J move one section down
 
-            // TODO IMPLEMENT THIS IN THE API
 
-            //TaskList.moveCursor(1);
+        } else if(key == 'K'){ // K  move one section up
 
-        } else if(i === 75){ // K  move one section up
 
-            // TODO IMPLEMENT THIS IN THE API
+        } else if(key == 'X' || key == 'x' || key == ' '){ // X and Space
 
-            //TaskList.moveCursor(-1);
+            view.TaskList.checkItem();
 
-        } else if(i === 120 || i === 32 || i === 10){ // X and Space and Enter
+        } else if(key == 'd' || key == '-'){ // d, minus to decrement whatever you are on
 
-            //TaskList.checkItem();
+            view.TaskList.decrementHabit();
 
-        } else if(i === 100 || i === 45){ // d, minus to decrement whatever you are on
+        } else if(key == 'r'){ // r, manual refresh 
 
-            //TaskList.decrementHabit();
+            HabitAPI.refresh();
 
-        } else if(i === 114){ // r, manual refresh 
+        }  else if(key == '?'){
 
-            //HabitAPI.refresh();
+            view.HelpWindow.toggle();
 
-        }  else if(i === 63){
+        }  else if(key == ":"){
+            view.InputWindow.setMode('command');
 
-            //toggleHelp();
-
-        }  else if(i === 58){
-
-            //inputMode = 'command';
-            //inputWin.inbuffer = '';
-            //nc.showCursor = true;
-
-        } else if(i == 47){
-
-            //inputMode = 'search';
-            //inputWin.inbuffer = '';
-            //nc.showCursor = true;
+        } else if(key == "/"){
+            view.InputWindow.setMode('search');
 
         }
     }
 
+    if(view.InputWindow.getMode() != 'normal'){
+        // we are not in normal mode
+        view.InputWindow.keyPress(key);
 
+    }
+
+/*
     if(inputMode == 'command' | inputMode == 'search'){
         if(i === 9){
             inputMode = 'normal';
@@ -254,6 +234,7 @@ function keyPress(key){
         }
 
     }
+    */
 
 
 }
