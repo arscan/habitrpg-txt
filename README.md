@@ -13,4 +13,4 @@ Press ? for help with keyboard shortcuts.  Key bindings are similar to those of 
 
 Example of what it looks like in the context of my workspace:
 
-![Screenshot](https://raw.github.com/arscan/habitrpg-txt/master/screenshot1.png)
+![Screenshot](https://raw.github.com/arscan/habitrpg-txt/master/screenshot2.png)
