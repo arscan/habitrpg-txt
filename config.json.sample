@@ -2,4 +2,5 @@
     "APIURL":"https://habitrpg.com/api/v1",
     "APIUSER":"000000-00000-000000-0000000-00000",
     "APITOKEN": "000000-00000-000000-0000000-00000"
+    "KEYBINDING": "vi"
 }
