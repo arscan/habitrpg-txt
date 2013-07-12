@@ -6,7 +6,8 @@
     "superagent": "*",
     "nconf": "*",
     "underscore": "*",
-    "charm": "*"
+    "charm": "*",
+    "keypress": "*"
   },
   "main": "./index.js",
   "engines": { "node": ">0.6.0" },
