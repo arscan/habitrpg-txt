@@ -46,7 +46,7 @@ function keyPress(key){
     var kb = view.InputWindow.getKeybinding();
     if(view.InputWindow.getMode() == 'normal'){
         if(kb == 'vi') { 
-            if(key.name === '~' || key.name === '`'){ // ~, `  toggle debug window
+            if(key == '~' || key == '`'){ // ~, `  toggle debug window
 
                 view.LogWindow.toggle();
 
